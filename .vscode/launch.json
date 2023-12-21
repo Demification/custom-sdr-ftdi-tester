@@ -5,7 +5,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/build/custom-sdr-control-server",
+            "program": "${workspaceRoot}/build/custom-sdr-ftdi-tester",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}",

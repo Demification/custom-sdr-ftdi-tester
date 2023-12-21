@@ -16,28 +16,28 @@
         {
             "type": "shell",
             "label": "move",
-            "command": "/usr/bin/rsync -ratlz --rsh='/usr/bin/sshpass -p ${config:remote-target-ssh-password} ssh -o StrictHostKeyChecking=no -l ${config:remote-target-ssh-login}' /home/user/custom-sdr/custom-sdr-control-server/build/custom-sdr-control-server ${config:remote-target-address}:/opt/custom-sdr/custom-sdr-control-server",
+            "command": "/usr/bin/rsync -ratlz --rsh='/usr/bin/sshpass -p ${config:remote-target-ssh-password} ssh -o StrictHostKeyChecking=no -l ${config:remote-target-ssh-login}' /home/user/custom-sdr/custom-sdr-ftdi-tester/build/custom-sdr-ftdi-tester ${config:remote-target-address}:/opt/custom-sdr/custom-sdr-ftdi-tester",
             "isBackground": true
         },
 
         {
             "type": "shell",
             "label": "set-permissions",
-            "command": "sshpass -p '${config:remote-target-ssh-password}' ssh ${config:remote-target-address} 'sudo chmod 777 /opt/custom-sdr/custom-sdr-control-server'",
+            "command": "sshpass -p '${config:remote-target-ssh-password}' ssh ${config:remote-target-address} 'sudo chmod 777 /opt/custom-sdr/custom-sdr-ftdi-tester'",
             "isBackground": true
         },
 
         {
             "type": "shell",
             "label": "run-gdbserver",
-            "command": "sshpass -p '${config:remote-target-ssh-password}' ssh ${config:remote-target-address} 'sudo /usr/bin/gdbserver :5039 /opt/custom-sdr/custom-sdr-control-server'",
+            "command": "sshpass -p '${config:remote-target-ssh-password}' ssh ${config:remote-target-address} 'sudo /usr/bin/gdbserver :5039 /opt/custom-sdr/custom-sdr-ftdi-tester'",
             "isBackground": true
         },
 
         {
             "type": "shell",
             "label": "attach-gdbserver",
-            "command": "sshpass -p '${config:remote-target-ssh-password}' ssh ${config:remote-target-address} 'sudo /usr/bin/gdbserver --attach :5039 $(pidof custom-sdr-control-server)'",
+            "command": "sshpass -p '${config:remote-target-ssh-password}' ssh ${config:remote-target-address} 'sudo /usr/bin/gdbserver --attach :5039 $(pidof custom-sdr-ftdi-tester)'",
             "isBackground": true
         },
         {
