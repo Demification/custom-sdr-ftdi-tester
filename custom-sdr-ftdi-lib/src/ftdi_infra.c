@@ -236,7 +236,6 @@ FTDIMPSSE_API void Init_libMPSSE(void)
 	if (!hdll_d2xx) 
 	{ 
 		fprintf(stderr, "dlopen failed: %s\n", dlerror()); 
-		return;
 	}
 #else // _WIN32
 	hdll_d2xx = LoadLibrary(L"ftd2xx.dll");

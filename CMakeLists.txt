@@ -17,7 +17,7 @@ add_executable(custom-sdr-ftdi-tester
 )
 
 target_include_directories(custom-sdr-ftdi-tester
-PUBLIC 
+PUBLIC
     .
     src
     ${FTDI_LIB_PATH}
@@ -28,10 +28,6 @@ PUBLIC
     -dynamic
     -fPIC
 
-    -L${CMAKE_SYSROOT}/usr/lib
-    -L${CMAKE_SYSROOT}/usr/lib/aarch64-linux-gnu
-
-    -pthread
     custom-sdr-ftdi-lib
 )
 

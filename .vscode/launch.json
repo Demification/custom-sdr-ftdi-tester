@@ -1,4 +1,7 @@
 {
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
@@ -6,14 +9,12 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceRoot}/build/custom-sdr-ftdi-tester",
-            "args": [],
+            "args": ["-t"],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}",
+            "cwd": "${fileDirname}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
-            "miDebuggerServerAddress": "192.168.44.212:5039",
-            "miDebuggerPath": "/usr/bin/gdb-multiarch",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -25,8 +26,8 @@
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
                 }
-            ],
-            "serverLaunchTimeout": 5000
+            ]
         }
+
     ]
 }
