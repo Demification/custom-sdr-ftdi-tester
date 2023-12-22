@@ -1,5 +1,5 @@
 #pragma once
-const char* Lmk04828InitRegs = R"(
+const char* Lmk04828Bringup = R"(
 R0	    0x000010
 R2	    0x000200
 R3	    0x000306

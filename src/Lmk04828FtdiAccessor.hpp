@@ -9,7 +9,7 @@ public:
     Lmk04828FtdiAccessor();
     ~Lmk04828FtdiAccessor();
 
-    bool bringupLmk04828();
+    bool bringup();
     bool writeRegister(uint16_t address, uint8_t value);
 
 private:

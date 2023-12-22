@@ -23,7 +23,7 @@ Afe77xxFtdiAccessor::Afe77xxFtdiAccessor() {
                                 .configOptions = SPI_CONFIG_OPTION_MODE0 | 
                                                  SPI_CONFIG_OPTION_CS_DBUS3 | 
                                                  SPI_CONFIG_OPTION_CS_ACTIVELOW, 
-                                .Pin = 0x0BUL | (0x08UL << 8) | (0x0BUL<<16) | (0x08UL << 8)};
+                                .Pin = 0 };
 
         if(FT_OK == (result = SPI_InitChannel(m_handle, &config))) {
             m_inited = true;
@@ -41,6 +41,8 @@ Afe77xxFtdiAccessor::~Afe77xxFtdiAccessor() {
 bool Afe77xxFtdiAccessor::readRegisters(uint16_t address, 
                                         unsigned char *buffer, 
                                         unsigned int len) {
+    if(!m_inited) return false;
+    
     for (size_t i = 0; i < len; i++) {
         if(!waitSpiAccess()){
             __DEBUG_ERROR__("Spi busy-state stuck.");
@@ -60,6 +62,8 @@ bool Afe77xxFtdiAccessor::writeRegisters(uint16_t address,
                                          unsigned char *buffer, 
                                          unsigned int len) 
 {
+    if(!m_inited) return false;
+
     for (size_t i = 0; i < len; i++) {
         if(!waitSpiAccess()){
             __DEBUG_ERROR__("Spi busy-state stuck.");
@@ -79,7 +83,7 @@ bool Afe77xxFtdiAccessor::waitSpiAccess() {
     unsigned int state = 1, counter = 0;
     while (state) {
         if(FT_OK != SPI_IsBusy(m_handle, &state)){
-            __DEBUG_ERROR__("Can`t get spi busy state.");
+            __DEBUG_ERROR__("Can`t get spi buzy state.");
             return false;
         }
 
@@ -101,9 +105,13 @@ bool Afe77xxFtdiAccessor::writeRegister(uint16_t address,
     packet.address = address;
     packet.value = value;
 
+    unsigned option = SPI_TRANSFER_OPTIONS_SIZE_IN_BYTES | 
+                      SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE | 
+                      SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE;
+
     auto size = sizeof(Packet);
     unsigned int transfered, result;
-    if(FT_OK == (result = SPI_Write(m_handle, packet.data, size, &transfered, 0x06))){
+    if(FT_OK == (result = SPI_Write(m_handle, packet.data, size, &transfered, option))){
         if(transfered != size) 
             __DEBUG_ERROR__("Transfered bytes not equal size.");
     }
@@ -119,6 +127,10 @@ bool Afe77xxFtdiAccessor::readRegister(uint16_t address, unsigned char &value)
     write_packet.address = address;
     write_packet.value = 0xff;
 
+    unsigned option = SPI_TRANSFER_OPTIONS_SIZE_IN_BYTES | 
+                      SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE | 
+                      SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE;
+
     auto size = sizeof(Packet);
     unsigned int transfered, result;
     if(FT_OK == (result = SPI_ReadWrite(m_handle, 
@@ -126,7 +138,7 @@ bool Afe77xxFtdiAccessor::readRegister(uint16_t address, unsigned char &value)
                                         write_packet.data, 
                                         size, 
                                         &transfered, 
-                                        0x06))){
+                                        option))){
         if(transfered != size) 
             __DEBUG_ERROR__("Transfered bytes not equal size.");
         else

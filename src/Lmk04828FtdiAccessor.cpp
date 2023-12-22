@@ -4,7 +4,7 @@
 #include "spi.h"
 #include "ftdi.h"
 #include "Debug.hpp"
-#include "Lmk04828InitRegs.hpp"
+#include "Lmk04828Bringup.hpp"
 
 Lmk04828FtdiAccessor::Lmk04828FtdiAccessor()
     : m_config { .sck  = 0x04,
@@ -25,10 +25,10 @@ Lmk04828FtdiAccessor::~Lmk04828FtdiAccessor() {
     if(m_handle) FTD2_Close(m_handle);
 }
 
-bool Lmk04828FtdiAccessor::bringupLmk04828() {
+bool Lmk04828FtdiAccessor::bringup() {
     if(!m_inited) return false;
 
-    std::stringstream stream(Lmk04828InitRegs);
+    std::stringstream stream(Lmk04828Bringup);
 
     std::string line;
     while(std::getline(stream, line, '\n')) {
@@ -57,13 +57,15 @@ bool Lmk04828FtdiAccessor::writeRegister(uint16_t address, uint8_t value) {
     Packet {
 		unsigned char data[3];
 		struct __attribute__((packed)) {
-			    uint8_t  rw_bit  : 1;
-			    uint16_t address : 15;
-                uint8_t value    : 8;
+			uint8_t  rw_bit  : 1;
+            uint8_t  mul_byte: 2;
+			uint16_t address : 13;
+            uint8_t  value   : 8;
 		};
     } packet;
 
     packet.rw_bit = 0;
+    packet.mul_byte = 0;
     packet.address = address;
     packet.value = value;
 
@@ -72,9 +74,10 @@ bool Lmk04828FtdiAccessor::writeRegister(uint16_t address, uint8_t value) {
 }
 
 bool Lmk04828FtdiAccessor::initInfo() {
-    DWORD count;
-    if(FT_OK != FTD2_CreateDeviceInfoList(&count)) {
-        __DEBUG_ERROR__("Can`t create device info list.");
+    DWORD count, result;
+    if(FT_OK != (result = FTD2_CreateDeviceInfoList(&count))) {
+        __DEBUG_ERROR__("Can`t create device info list."
+            " Result: " + std::to_string(result));
         return false;
     }
 
@@ -91,8 +94,10 @@ bool Lmk04828FtdiAccessor::initInfo() {
         return false;
     }
 
+    
     for (size_t i = 0; i < count; i++) {
         m_info.push_back(info[i]);
+        __DEBUG_INFO__(info[i].Description);
     }
     
     free(info);
