@@ -9,8 +9,10 @@ public:
     Lmk04828FtdiAccessor();
     ~Lmk04828FtdiAccessor();
 
-    bool bringup();
+    bool setup();
+
     bool writeRegister(uint16_t address, uint8_t value);
+    double setPllRefClk(double frequency);
 
 private:
     bool m_inited = false;

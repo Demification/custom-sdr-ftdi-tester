@@ -212,6 +212,10 @@ typedef FT_STATUS (CAL_CONV *pfunc_FT_Write) (FT_HANDLE ftHandle, LPVOID lpBuffe
 typedef FT_STATUS (CAL_CONV *pfunc_FT_GetDeviceInfo)(FT_HANDLE ftHandle, FT_DEVICE *lpftDevice, LPDWORD lpdwID, PCHAR SerialNumber, PCHAR Description, LPVOID Dummy);
 typedef FT_STATUS (CAL_CONV *pfunc_FT_CreateDeviceInfoList)(LPDWORD lpdwNumDevs);
 typedef FT_STATUS (CAL_CONV *pfunc_FT_OpenEx)(PVOID pArg1, DWORD Flags, FT_HANDLE *pHandle);
+typedef FT_STATUS (CAL_CONV *pfunc_FT_GetStatus)(FT_HANDLE ftHandle, DWORD *dwRxBytes, DWORD *dwTxBytes, DWORD *dwEventDWord);
+typedef FT_STATUS (CAL_CONV *pfunc_FT_GetBitMode)(FT_HANDLE ftHandle, PUCHAR pucMode);
+typedef FT_STATUS (CAL_CONV *pfunc_FT_SetBaudRate)(FT_HANDLE ftHandle, ULONG BaudRate);
+typedef FT_STATUS (CAL_CONV *pfunc_FT_SetDivisor)(FT_HANDLE ftHandle, USHORT Divisor);
 
 typedef struct InfraFunctionPtrLst_t
 {
@@ -234,6 +238,10 @@ typedef struct InfraFunctionPtrLst_t
 	pfunc_FT_GetDeviceInfo p_FT_GetDeviceInfo;
 	pfunc_FT_CreateDeviceInfoList p_FT_CreateDeviceInfoList;
 	pfunc_FT_OpenEx p_FT_OpenEx;
+	pfunc_FT_GetStatus p_FT_GetStatus;
+	pfunc_FT_GetBitMode p_FT_GetBitMode;
+	pfunc_FT_SetBaudRate p_FT_SetBaudRate; 
+	pfunc_FT_SetDivisor p_FT_SetDivisor;
 } InfraFunctionPtrLst;
 
 /******************************************************************************/

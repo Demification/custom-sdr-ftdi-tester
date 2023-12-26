@@ -5,8 +5,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(FTDI_LIB_PATH ${CMAKE_CURRENT_LIST_DIR}/custom-sdr-ftdi-lib)
+set(AFE77XX_LIB_PATH ${CMAKE_CURRENT_LIST_DIR}/custom-sdr-afe77xx-lib)
 
 add_subdirectory(${FTDI_LIB_PATH})
+add_subdirectory(${AFE77XX_LIB_PATH})
 
 file(GLOB_RECURSE ALL_SRC_HPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
 file(GLOB_RECURSE ALL_SRC_CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
@@ -21,6 +23,7 @@ PUBLIC
     .
     src
     ${FTDI_LIB_PATH}
+    ${AFE77XX_LIB_PATH}
 )
 
 target_link_libraries (custom-sdr-ftdi-tester
@@ -29,6 +32,7 @@ PUBLIC
     -fPIC
 
     custom-sdr-ftdi-lib
+    custom-sdr-afe77xx-lib
 )
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")

@@ -1,19 +1,13 @@
 #include "Afe77xxFtdiAccessor.hpp"
 #include <thread>
 #include <chrono>
+#include <functional>
+
+#include "spi.h"
+#include "afe77xx.h"
 
 #include "Debug.hpp"
-#include "spi.h"
-
-union __attribute__((__packed__, aligned(8))) 
-Packet {
-	unsigned char data[3];
-	struct __attribute__((packed)) {
-		uint8_t  rw_bit  : 1;
-		uint16_t address : 15;
-        uint8_t value    : 8;
-	};
-} ;
+#include "MemoryPartTypes.hpp"
 
 Afe77xxFtdiAccessor::Afe77xxFtdiAccessor() {
     unsigned int result;
@@ -36,6 +30,19 @@ Afe77xxFtdiAccessor::Afe77xxFtdiAccessor() {
 Afe77xxFtdiAccessor::~Afe77xxFtdiAccessor() {
     if(m_handle)
         SPI_CloseChannel(m_handle);
+}
+
+bool Afe77xxFtdiAccessor::setup() {
+    if(!m_inited) return false;
+
+    writeRegister(0x00, 0x30);
+    writeRegister(0x01, 0x00);
+
+    return true;
+}
+
+FT_HANDLE Afe77xxFtdiAccessor::handle() const {
+    return m_handle;
 }
 
 bool Afe77xxFtdiAccessor::readRegisters(uint16_t address, 
@@ -77,6 +84,57 @@ bool Afe77xxFtdiAccessor::writeRegisters(uint16_t address,
         }
     }
     return true;
+}
+
+bool Afe77xxFtdiAccessor::readRegisters(uint16_t address, unsigned int &buffer)
+{
+    HeaderStreamingPacket read_packet, write_packet;
+
+    write_packet.rw_bit = 1;
+    write_packet.address = address;
+    write_packet.value = 0xffffffff;
+
+    unsigned option = SPI_TRANSFER_OPTIONS_SIZE_IN_BYTES | 
+                      SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE | 
+                      SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE;
+
+    auto size = sizeof(Packet);
+    unsigned int transfered, result;
+    if(FT_OK == (result = SPI_ReadWrite(m_handle, 
+                                        read_packet.data, 
+                                        write_packet.data, 
+                                        size, 
+                                        &transfered, 
+                                        option))){
+        if(transfered != size) 
+            __DEBUG_ERROR__("Transfered bytes not equal size.");
+        else
+            buffer = read_packet.value;
+    }
+    else __DEBUG_ERROR__("Can`t write spi. Result: " + std::to_string(result));
+    return !result;
+}
+
+bool Afe77xxFtdiAccessor::writeRegisters(uint16_t address, unsigned int buffer)
+{
+    HeaderStreamingPacket packet;
+
+    packet.rw_bit = 0;
+    packet.address = address;
+    packet.value = buffer;
+
+    unsigned option = SPI_TRANSFER_OPTIONS_SIZE_IN_BYTES | 
+                      SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE | 
+                      SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE;
+
+    auto size = sizeof(HeaderStreamingPacket);
+    unsigned int transfered, result;
+    if(FT_OK == (result = SPI_Write(m_handle, packet.data, size, &transfered, option))){
+        if(transfered != size) 
+            __DEBUG_ERROR__("Transfered bytes not equal size.");
+    }
+    else __DEBUG_ERROR__("Can`t write spi. Result: " + std::to_string(result));
+    return !result;
 }
 
 bool Afe77xxFtdiAccessor::waitSpiAccess() {

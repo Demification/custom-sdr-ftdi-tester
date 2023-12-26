@@ -31,6 +31,7 @@
 #define FTDI_EXPORTS
 #include "ftdi_infra.h"		/*portable infrastructure(datatypes, libraries, etc)*/
 #include "spi.h"
+#include "ftdi.h"
 
 
 /******************************************************************************/
@@ -236,6 +237,7 @@ FTDIMPSSE_API void Init_libMPSSE(void)
 	if (!hdll_d2xx) 
 	{ 
 		fprintf(stderr, "dlopen failed: %s\n", dlerror()); 
+		return;
 	}
 #else // _WIN32
 	hdll_d2xx = LoadLibrary(L"ftd2xx.dll");
@@ -299,6 +301,18 @@ FTDIMPSSE_API void Init_libMPSSE(void)
 	/*FT_CreateDeviceInfoList*/
 	varFunctionPtrLst.p_FT_OpenEx = (pfunc_FT_OpenEx)GET_FUNC(hdll_d2xx,"FT_OpenEx");
 	CHECK_SYMBOL(varFunctionPtrLst.p_FT_OpenEx);
+	
+	varFunctionPtrLst.p_FT_GetStatus = (pfunc_FT_GetStatus)GET_FUNC(hdll_d2xx,"FT_GetStatus");
+	CHECK_SYMBOL(varFunctionPtrLst.p_FT_GetStatus);
+	
+	varFunctionPtrLst.p_FT_GetBitMode = (pfunc_FT_GetBitMode)GET_FUNC(hdll_d2xx,"FT_GetBitMode");
+	CHECK_SYMBOL(varFunctionPtrLst.p_FT_GetBitMode);
+
+	varFunctionPtrLst.p_FT_SetDivisor = (pfunc_FT_SetDivisor)GET_FUNC(hdll_d2xx,"FT_SetDivisor");
+	CHECK_SYMBOL(varFunctionPtrLst.p_FT_SetDivisor);
+
+	varFunctionPtrLst.p_FT_SetBaudRate = (pfunc_FT_SetBaudRate)GET_FUNC(hdll_d2xx,"FT_SetBaudRate");
+	CHECK_SYMBOL(varFunctionPtrLst.p_FT_SetBaudRate);
 
 	/*Call module specific initialization functions from here(if at all they are required)
 		Example:
@@ -603,4 +617,23 @@ FTDIMPSSE_API FT_STATUS FTD2_CreateDeviceInfoList(LPDWORD lpdwNumDevs)
 FTDIMPSSE_API FT_STATUS FTD2_OpenEx(PVOID pArg1, DWORD Flags, FT_HANDLE *pHandle)
 {
     return varFunctionPtrLst.p_FT_OpenEx(pArg1, Flags, pHandle);
+}
+FTDIMPSSE_API FT_STATUS FTD2_GetStatus(FT_HANDLE ftHandle, DWORD *dwRxBytes, DWORD *dwTxBytes, DWORD *dwEventDWord)
+{
+    return varFunctionPtrLst.p_FT_GetStatus(ftHandle, dwRxBytes, dwTxBytes, dwEventDWord);
+}
+
+FTDIMPSSE_API FT_STATUS FTD2_GetBitMode(FT_HANDLE ftHandle, PUCHAR pucMode)
+{
+    return varFunctionPtrLst.p_FT_GetBitMode(ftHandle, pucMode);
+}
+
+FTDIMPSSE_API FT_STATUS FTD2_SetBaudRate(FT_HANDLE ftHandle, ULONG BaudRate)
+{
+    return varFunctionPtrLst.p_FT_SetBaudRate(ftHandle, BaudRate);
+}
+
+FTDIMPSSE_API FT_STATUS FTD2_SetDivisor(FT_HANDLE ftHandle, USHORT Divisor)
+{
+    return varFunctionPtrLst.p_FT_SetDivisor(ftHandle, Divisor);
 }

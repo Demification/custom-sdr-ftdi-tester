@@ -6,7 +6,7 @@ file(GLOB_RECURSE ALL_SRC_C_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
 
 set(CMAKE_EXE_LINKER_FLAGS "-export-dynamic")
 
-add_library(custom-sdr-ftdi-lib
+add_library(custom-sdr-ftdi-lib STATIC
     ${ALL_SRC_H_FILES}
     ${ALL_SRC_C_FILES}
     ${CMAKE_CURRENT_LIST_DIR}/include/i2c.h

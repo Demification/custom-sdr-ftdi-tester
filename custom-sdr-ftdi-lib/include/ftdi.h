@@ -55,6 +55,10 @@ FTDIMPSSE_API FT_STATUS  FTD2_Write (FT_HANDLE ftHandle, LPVOID lpBuffer, DWORD 
 FTDIMPSSE_API FT_STATUS  FTD2_GetDeviceInfo(FT_HANDLE ftHandle, FT_DEVICE *lpftDevice, LPDWORD lpdwID, PCHAR SerialNumber, PCHAR Description, LPVOID Dummy);
 FTDIMPSSE_API FT_STATUS  FTD2_CreateDeviceInfoList(LPDWORD lpdwNumDevs);
 FTDIMPSSE_API FT_STATUS  FTD2_OpenEx(PVOID pArg1, DWORD Flags, FT_HANDLE *pHandle);
+FTDIMPSSE_API FT_STATUS  FTD2_GetStatus(FT_HANDLE ftHandle, DWORD *dwRxBytes, DWORD *dwTxBytes, DWORD *dwEventDWord);
+FTDIMPSSE_API FT_STATUS  FTD2_GetBitMode(FT_HANDLE ftHandle, PUCHAR pucMode);
+FTDIMPSSE_API FT_STATUS  FTD2_SetBaudRate(FT_HANDLE ftHandle, ULONG BaudRate);
+FTDIMPSSE_API FT_STATUS  FTD2_SetDivisor(FT_HANDLE ftHandle, USHORT Divisor);
 
 #ifdef __cplusplus
 }

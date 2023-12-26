@@ -1,10 +1,13 @@
 #include "Lmk04828FtdiAccessor.hpp"
+#include <math.h>
 #include <sstream>
+#include <iostream>
+#include <algorithm>
 
 #include "spi.h"
 #include "ftdi.h"
 #include "Debug.hpp"
-#include "Lmk04828Bringup.hpp"
+#include "Lmk04828SetupRegisters.hpp"
 
 Lmk04828FtdiAccessor::Lmk04828FtdiAccessor()
     : m_config { .sck  = 0x04,
@@ -25,10 +28,10 @@ Lmk04828FtdiAccessor::~Lmk04828FtdiAccessor() {
     if(m_handle) FTD2_Close(m_handle);
 }
 
-bool Lmk04828FtdiAccessor::bringup() {
+bool Lmk04828FtdiAccessor::setup() {
     if(!m_inited) return false;
 
-    std::stringstream stream(Lmk04828Bringup);
+    std::stringstream stream(Lmk04828SetupRegisters);
 
     std::string line;
     while(std::getline(stream, line, '\n')) {
@@ -73,6 +76,72 @@ bool Lmk04828FtdiAccessor::writeRegister(uint16_t address, uint8_t value) {
     return bitbangWrite(m_config, packet.data, 3, &written);
 }
 
+double Lmk04828FtdiAccessor::setPllRefClk(double frequency) {
+    const double LMK04828_VCXCO_FREQ = 122.88e6;
+    const double LMK04828_PLL1_MAX_FPFD = 1.2e6;
+    const double LMK04828_PLL1_MIN_FPFD = 80e3;
+    const double LMK04828_MAX_R_DIV = 16363L;
+    const double LMK04828_MAX_N_DIV = 16363L;
+    const double LMK04828_MAX_DLD_CNT = 16363L;
+    const double LMK04828_DLD_PREC = 5e-7;
+    const double LMK04828_WND_SIZE = 4e-9;
+
+    int dividerN = 0, 
+        dividerR = floor(frequency / LMK04828_PLL1_MAX_FPFD);
+
+    double fpfd;
+
+    bool valid = false;
+    while ((fpfd = frequency / dividerR) >= LMK04828_PLL1_MIN_FPFD 
+        && dividerR <= LMK04828_MAX_R_DIV)
+    {
+	    double Nf = LMK04828_VCXCO_FREQ / fpfd;
+	    dividerN = (int)Nf;
+	    if (dividerN > 8191) 
+            break;
+	    if (dividerN == Nf) {
+            valid = true; 
+            break;} //integer value
+	    ++dividerR;
+    }
+
+    auto hi = [](int a) -> unsigned char {return ((a >> 8) & 0xff);};
+    auto lo = [](int a) -> unsigned char {return (a & 0xff);};
+    auto setRegister = [&](uint16_t reg, uint8_t value) {
+        if(!writeRegister(reg, value)) 
+            std::cerr << "Register write error: @" << std::hex << reg << "=" << 
+                                                      std::hex << value << std::endl;
+    };
+
+    if (valid) {
+	    //@0x155..0x156 <= R;
+        setRegister(0x155, hi(dividerR));
+        setRegister(0x156, lo(dividerR));
+
+ 	    //@0x159..0x15A <= N;
+        setRegister(0x159, hi(dividerN));
+        setRegister(0x15A, lo(dividerN));
+
+	    int cp = (std::min(lround(0.02 * dividerN - 0.5), 15L)) | 0x10;
+
+	    //@0x15B <= CP | 0x10;
+        setRegister(0x15B, (uint8_t)cp);
+	    
+        double value = lround(fpfd * (LMK04828_WND_SIZE / LMK04828_DLD_PREC));
+        int dldCnt = std::min(value, LMK04828_MAX_DLD_CNT);
+
+	    //@0x15C..0x15D <= dldCnt;
+        setRegister(0x15C, hi(dldCnt));
+        setRegister(0x15D, lo(dldCnt));
+    }
+    else {
+        __DEBUG_ERROR__("Frequency not valid.");
+        return -1;
+    }
+
+    return frequency;
+}
+
 bool Lmk04828FtdiAccessor::initInfo() {
     DWORD count, result;
     if(FT_OK != (result = FTD2_CreateDeviceInfoList(&count))) {
@@ -94,7 +163,6 @@ bool Lmk04828FtdiAccessor::initInfo() {
         return false;
     }
 
-    
     for (size_t i = 0; i < count; i++) {
         m_info.push_back(info[i]);
         __DEBUG_INFO__(info[i].Description);
@@ -134,7 +202,7 @@ bool Lmk04828FtdiAccessor::initBitbangMode(const BitbangConfig &config) {
     return false;
 }
 
-bool Lmk04828FtdiAccessor::bitbangWrite(const BitbangConfig& config, 
+bool Lmk04828FtdiAccessor::          bitbangWrite(const BitbangConfig& config, 
                                         unsigned char *data, 
                                         unsigned len, 
                                         unsigned int *written)
@@ -159,7 +227,7 @@ bool Lmk04828FtdiAccessor::bitbangWrite(const BitbangConfig& config,
     *p = config.nss; //sck down
 
     unsigned int wrtn = 0;
-    if(FT_OK != FTD2_Write(m_handle, m_bitbangBuff.data(), cnt*16+3, &wrtn)){
+    if(FT_OK != FTD2_Write(m_handle, m_bitbangBuff.data(), cnt * 16 + 3, &wrtn)) {
         __DEBUG_ERROR__("Can`t write register in bitbang mode."); 
         return false;
     }
