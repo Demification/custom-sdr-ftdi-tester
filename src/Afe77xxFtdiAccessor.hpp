@@ -1,31 +1,37 @@
 #pragma once
 #include <memory>
-#include <ftd2xx.h>
-#include <afe77xx.h>
 
-class Afe77xxFtdiAccessor
+#include "FtdiSpiMemoryAccessor.hpp"
+
+class Afe77xxFtdiAccessor: protected FtdiSpiMemoryAccessor
 {
 public:
     using UPtr = std::unique_ptr<Afe77xxFtdiAccessor>;
 
-    Afe77xxFtdiAccessor();
-    ~Afe77xxFtdiAccessor();
+    Afe77xxFtdiAccessor(FtdiDeviceInfoList::Ptr infoList);
+    virtual ~Afe77xxFtdiAccessor() = default;
 
-    bool setup();
-    FT_HANDLE handle() const;
+    bool init();
+    void* handle();
 
-    bool readRegisters(uint16_t address, unsigned char *buffer, unsigned int len);
-    bool writeRegisters(uint16_t address, unsigned char *buffer, unsigned int len);
+    bool readRegisters(uint16_t address, 
+                       uint8_t* values, 
+                       uint32_t length);
 
-    bool readRegisters(uint16_t address, unsigned int& buffer);
-    bool writeRegisters(uint16_t address, unsigned int buffer);
+    bool writeRegisters(uint16_t address, 
+                        uint8_t* values, 
+                        uint32_t length);
+
+    bool readRegistersBurst(uint16_t address, 
+                            uint8_t* values, 
+                            uint32_t length);
+    
+    bool writeRegistersBurst(uint16_t address, 
+                             uint8_t* values, 
+                             uint32_t length);
 
 private: 
-    bool m_inited = false;
-    FT_HANDLE m_handle = nullptr;
-
-    bool waitSpiAccess();
-    bool writeRegister(uint16_t address, unsigned char value);
-    bool readRegister(uint16_t address, unsigned char& value);
+    bool writeRegister(uint16_t address, uint8_t value);
+    bool readRegister(uint16_t address, uint8_t& value);
 };
 

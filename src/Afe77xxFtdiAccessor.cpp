@@ -1,39 +1,30 @@
 #include "Afe77xxFtdiAccessor.hpp"
+#include <string.h>
+
 #include <thread>
 #include <chrono>
+#include <memory>
 #include <functional>
 
 #include "spi.h"
 #include "afe77xx.h"
-
 #include "Debug.hpp"
-#include "MemoryPartTypes.hpp"
 
-Afe77xxFtdiAccessor::Afe77xxFtdiAccessor() {
-    unsigned int result;
-    if(FT_OK == (result = SPI_OpenChannel(0, &m_handle))) {
-        ChannelConfig config = {.ClockRate = 20000000,
-                                .LatencyTimer = 0,
-                                .configOptions = SPI_CONFIG_OPTION_MODE0 | 
-                                                 SPI_CONFIG_OPTION_CS_DBUS3 | 
-                                                 SPI_CONFIG_OPTION_CS_ACTIVELOW, 
-                                .Pin = 0 };
-
-        if(FT_OK == (result = SPI_InitChannel(m_handle, &config))) {
-            m_inited = true;
-        }
-        else __DEBUG_ERROR__("Can`t init spi channel. Result: " + std::to_string(result));
-    }
-    else __DEBUG_ERROR__("Can`t open spi channel. Result: " + std::to_string(result));
+Afe77xxFtdiAccessor::Afe77xxFtdiAccessor(FtdiDeviceInfoList::Ptr infoList) 
+    : FtdiSpiMemoryAccessor(ChannelConfig_t {.ClockRate = 20000000,
+                                           .LatencyTimer = 0,
+                                           .configOptions = SPI_CONFIG_OPTION_MODE0 | 
+                                                            SPI_CONFIG_OPTION_CS_DBUS3 | 
+                                                            SPI_CONFIG_OPTION_CS_ACTIVELOW, 
+                                           .Pin = 0 }, 
+                            infoList->getByIndex(0), 0) 
+{
+    if(isInitedMpsseMode())
+        __DEBUG_INFO__("Afe77xx ftdi accessor info:" + deviceInfo()->string());
 }
 
-Afe77xxFtdiAccessor::~Afe77xxFtdiAccessor() {
-    if(m_handle)
-        SPI_CloseChannel(m_handle);
-}
-
-bool Afe77xxFtdiAccessor::setup() {
-    if(!m_inited) return false;
+bool Afe77xxFtdiAccessor::init() {
+    if(!isInitedMpsseMode()) return false;
 
     writeRegister(0x00, 0x30);
     writeRegister(0x01, 0x00);
@@ -41,167 +32,129 @@ bool Afe77xxFtdiAccessor::setup() {
     return true;
 }
 
-FT_HANDLE Afe77xxFtdiAccessor::handle() const {
-    return m_handle;
+void *Afe77xxFtdiAccessor::handle() {
+    return FtdiSpiMemoryAccessor::handle();
 }
 
 bool Afe77xxFtdiAccessor::readRegisters(uint16_t address, 
-                                        unsigned char *buffer, 
-                                        unsigned int len) {
-    if(!m_inited) return false;
+                                        uint8_t *values, 
+                                        uint32_t length) 
+{
+    if(!isInitedMpsseMode()) return false;
     
-    for (size_t i = 0; i < len; i++) {
-        if(!waitSpiAccess()){
-            __DEBUG_ERROR__("Spi busy-state stuck.");
-            return false;
-        }
-
-        if(!readRegister(address + i, buffer[i])) {
+    for (size_t i = 0; i < length; i++) {
+        if(!mpsseWaitIsBusy() || !readRegister(address + i, values[i])) {
              __DEBUG_ERROR__("Can`t write register, "
                 "address:" + std::to_string(address + i));
-            return false;
+            
+            continue;
         }
     }
     return true;
 }
 
 bool Afe77xxFtdiAccessor::writeRegisters(uint16_t address, 
-                                         unsigned char *buffer, 
-                                         unsigned int len) 
+                                         uint8_t *values, 
+                                         uint32_t length) 
 {
-    if(!m_inited) return false;
+    if(!isInitedMpsseMode()) return false;
 
-    for (size_t i = 0; i < len; i++) {
-        if(!waitSpiAccess()){
-            __DEBUG_ERROR__("Spi busy-state stuck.");
-            return false;
-        }
-
-        if(!writeRegister(address + i, buffer[i])) {
+    for (size_t i = 0; i < length; i++) {
+        if(!mpsseWaitIsBusy() || !writeRegister(address + i, values[i])) {
              __DEBUG_ERROR__("Can`t write register, "
                 "address:" + std::to_string(address + i));
-            return false;
+            
+            continue;
         }
     }
     return true;
 }
 
-bool Afe77xxFtdiAccessor::readRegisters(uint16_t address, unsigned int &buffer)
+bool Afe77xxFtdiAccessor::readRegistersBurst(uint16_t address, 
+                                             uint8_t *values, 
+                                             uint32_t length)
 {
-    HeaderStreamingPacket read_packet, write_packet;
+    if(!isInitedMpsseMode()) return false;
 
-    write_packet.rw_bit = 1;
-    write_packet.address = address;
-    write_packet.value = 0xffffffff;
+    auto size = length + 2;
+    auto data = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
 
-    unsigned option = SPI_TRANSFER_OPTIONS_SIZE_IN_BYTES | 
-                      SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE | 
-                      SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE;
+    auto paddr = ((uint8_t*)&address) + 1;
+    data[0] = *paddr | 0x80;
+    data[1] = *(--paddr);
 
-    auto size = sizeof(Packet);
-    unsigned int transfered, result;
-    if(FT_OK == (result = SPI_ReadWrite(m_handle, 
-                                        read_packet.data, 
-                                        write_packet.data, 
-                                        size, 
-                                        &transfered, 
-                                        option))){
-        if(transfered != size) 
-            __DEBUG_ERROR__("Transfered bytes not equal size.");
-        else
-            buffer = read_packet.value;
+    memset(&data[2], 0, length);
+
+    if(!mpsseWaitIsBusy() || 
+        !mpsseWriteAndRead(data.get(), data.get(), size, 
+                        SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE |  
+                        SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE)) 
+    {
+         __DEBUG_ERROR__("Can`t write register, "
+                "address:" + std::to_string(address));
+
+        return false;
     }
-    else __DEBUG_ERROR__("Can`t write spi. Result: " + std::to_string(result));
-    return !result;
+
+    memcpy(values, &data[2], length);
+    return true;
 }
 
-bool Afe77xxFtdiAccessor::writeRegisters(uint16_t address, unsigned int buffer)
+bool Afe77xxFtdiAccessor::writeRegistersBurst(uint16_t address, 
+                                              uint8_t *values, 
+                                              uint32_t length)
 {
-    HeaderStreamingPacket packet;
+    if(!isInitedMpsseMode()) return false;
 
-    packet.rw_bit = 0;
-    packet.address = address;
-    packet.value = buffer;
+    auto size = length + 2;
+    auto data = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
 
-    unsigned option = SPI_TRANSFER_OPTIONS_SIZE_IN_BYTES | 
-                      SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE | 
-                      SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE;
+    auto paddr = ((uint8_t*)&address) + 1;
+    data[0] = *paddr;
+    data[1] = *(--paddr);
 
-    auto size = sizeof(HeaderStreamingPacket);
-    unsigned int transfered, result;
-    if(FT_OK == (result = SPI_Write(m_handle, packet.data, size, &transfered, option))){
-        if(transfered != size) 
-            __DEBUG_ERROR__("Transfered bytes not equal size.");
-    }
-    else __DEBUG_ERROR__("Can`t write spi. Result: " + std::to_string(result));
-    return !result;
-}
+    memcpy(&data[2], values, length);
 
-bool Afe77xxFtdiAccessor::waitSpiAccess() {
-    unsigned int state = 1, counter = 0;
-    while (state) {
-        if(FT_OK != SPI_IsBusy(m_handle, &state)){
-            __DEBUG_ERROR__("Can`t get spi buzy state.");
-            return false;
-        }
+    if(!mpsseWaitIsBusy() || 
+        !mpsseWrite(data.get(), size, 
+                        SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE |  
+                        SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE)) 
+    {
+         __DEBUG_ERROR__("Can`t write register, "
+                "address:" + std::to_string(address));
 
-        std::this_thread::sleep_for (std::chrono::milliseconds(true));
-        ++counter;
-
-        if(counter > 2000) 
-            return false;
+        return false;
     }
     return true;
 }
 
 bool Afe77xxFtdiAccessor::writeRegister(uint16_t address,
-                                            unsigned char value)
+                                        uint8_t value)
 {
-    Packet packet;
+    auto paddr = ((uint8_t*)&address) + 1;
+    uint8_t packet[3] = {*paddr, *(--paddr), value};
 
-    packet.rw_bit = 0;
-    packet.address = address;
-    packet.value = value;
-
-    unsigned option = SPI_TRANSFER_OPTIONS_SIZE_IN_BYTES | 
-                      SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE | 
-                      SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE;
-
-    auto size = sizeof(Packet);
-    unsigned int transfered, result;
-    if(FT_OK == (result = SPI_Write(m_handle, packet.data, size, &transfered, option))){
-        if(transfered != size) 
-            __DEBUG_ERROR__("Transfered bytes not equal size.");
-    }
-    else __DEBUG_ERROR__("Can`t write spi. Result: " + std::to_string(result));
-    return !result;
+    return mpsseWrite(packet, 3, 
+                        SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE |  
+                        SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE);
 }
 
-bool Afe77xxFtdiAccessor::readRegister(uint16_t address, unsigned char &value)
+bool Afe77xxFtdiAccessor::readRegister(uint16_t address, 
+                                       uint8_t &value)
 {
-    Packet read_packet, write_packet;
+    uint8_t read_packet[3];
 
-    write_packet.rw_bit = 1;
-    write_packet.address = address;
-    write_packet.value = 0xff;
+    auto paddr = ((uint8_t*)&address) + 1;
+    uint8_t write_packet[3] = {*paddr, *(--paddr), 0xff};
+    write_packet[0] |= 0x80;
 
-    unsigned option = SPI_TRANSFER_OPTIONS_SIZE_IN_BYTES | 
-                      SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE | 
-                      SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE;
-
-    auto size = sizeof(Packet);
-    unsigned int transfered, result;
-    if(FT_OK == (result = SPI_ReadWrite(m_handle, 
-                                        read_packet.data, 
-                                        write_packet.data, 
-                                        size, 
-                                        &transfered, 
-                                        option))){
-        if(transfered != size) 
-            __DEBUG_ERROR__("Transfered bytes not equal size.");
-        else
-            value = read_packet.value;
+    if(!mpsseWriteAndRead(write_packet, read_packet, 3, 
+                                SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE |  
+                                SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE))
+    {
+        return false;
     }
-    else __DEBUG_ERROR__("Can`t write spi. Result: " + std::to_string(result));
-    return !result;
+
+    value = read_packet[2];
+    return true;
 }

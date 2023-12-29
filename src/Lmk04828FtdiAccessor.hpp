@@ -1,43 +1,32 @@
 #pragma once
 #include <memory>
 #include <vector>
-#include <ftd2xx.h>
 
-class Lmk04828FtdiAccessor
+#include "FtdiSpiMemoryAccessor.hpp"
+
+typedef uint16_t RegisterAddr;
+typedef uint8_t  RegisterValue;
+
+class Lmk04828FtdiAccessor: protected FtdiSpiMemoryAccessor
 {
 public:
-    Lmk04828FtdiAccessor();
-    ~Lmk04828FtdiAccessor();
+    Lmk04828FtdiAccessor(FtdiDeviceInfoList::Ptr infoList);
+    virtual ~Lmk04828FtdiAccessor() = default;
 
-    bool setup();
-
+    bool init(double frequency = -1.0);
+    
     bool writeRegister(uint16_t address, uint8_t value);
-    double setPllRefClk(double frequency);
+    bool readRegister(uint16_t address, uint8_t& value);
 
 private:
-    bool m_inited = false;
-    FT_HANDLE m_handle = nullptr;
+    void initPll1();
+    void initPll2();
 
-    std::vector<FT_DEVICE_LIST_INFO_NODE> m_info;
+    bool parseInitRegs(const std::string& text, 
+                       std::map<RegisterAddr, RegisterValue>& registers);
 
-    bool initInfo();
-    bool initDevice();
-
-   struct BitbangConfig {
-        unsigned char sck;
-        unsigned char mosi;
-        unsigned char miso;
-        unsigned char nss;
-    };
-
-    const unsigned m_maxBurstLen = 3;
-    std::vector<unsigned char> m_bitbangBuff;
-
-    const BitbangConfig m_config;
-
-    bool initBitbangMode(const BitbangConfig& config);
-    bool bitbangWrite(const BitbangConfig& config,
-                      unsigned char * data, 
-                      unsigned len, 
-                      unsigned int *written);
+    bool computeInitRegsByFrequency(double frequency, 
+                                    std::map<RegisterAddr, RegisterValue>& registers);
+    
+    void writeRegisters(std::map<RegisterAddr, RegisterValue>& registers);
 };
