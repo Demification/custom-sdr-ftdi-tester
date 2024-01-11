@@ -33,6 +33,9 @@ PUBLIC
 
     custom-sdr-ftdi-lib
     custom-sdr-afe77xx-lib
+
+    -lboost_system 
+    -lboost_filesystem
 )
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")

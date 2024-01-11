@@ -1,5 +1,6 @@
 #pragma once
 const char* Lmk04828InitRegisters = R"(
+R0   	0x000090
 R0	    0x000010
 R2	    0x000200
 R3	    0x000306

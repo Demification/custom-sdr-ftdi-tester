@@ -20,6 +20,11 @@ FtdiSpiMemoryAccessor::FtdiSpiMemoryAccessor(const ChannelConfig_t &config,
                                              const FtdiDeviceInfo::Ptr &info, int id)
     : m_info(info)
 {
+    if(!info.get()) {
+        __DEBUG_ERROR__("Info is nullptr.");
+        return;
+    }
+
     if(initMpsseMode(id, config)) {
         m_initedMpsseMode = true;
     }

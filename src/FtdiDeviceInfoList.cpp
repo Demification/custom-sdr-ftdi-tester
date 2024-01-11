@@ -26,6 +26,9 @@ std::map<int, FtdiDeviceInfo::Ptr> FtdiDeviceInfoList::get() const {
 }
 
 FtdiDeviceInfo::Ptr FtdiDeviceInfoList::getByIndex(int index) const {
+    if(m_ftdiDevices.empty()) 
+        return FtdiDeviceInfo::Ptr(nullptr);
+        
     return m_ftdiDevices.at(0);
 }
 
