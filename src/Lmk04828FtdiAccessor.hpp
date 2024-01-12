@@ -19,10 +19,9 @@ public:
     bool init(double refClkFreq = 0.0);
     bool sendSysref();
     
-    int getLosStatus();
-    int getPll1Lock();
-    int getPll2Lock();
-    int getHoldover();
+    bool getLosStatus();
+    bool isLockedPll1();
+    bool isLockedPll2();
 
     bool readRegisters(uint16_t address, 
                        uint8_t* values, 
@@ -32,10 +31,11 @@ public:
                         uint8_t* values, 
                         uint32_t length);
 
-private:
+protected:
     bool writeRegister(uint16_t address, uint8_t value);
     bool readRegister(uint16_t address, uint8_t& value);
 
+private:
     void initPll1();
     void initPll2();
 

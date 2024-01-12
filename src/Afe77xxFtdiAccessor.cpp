@@ -45,7 +45,7 @@ bool Afe77xxFtdiAccessor::readRegisters(uint16_t address,
     if(!isInitedMpsseMode()) return false;
     
     for (size_t i = 0; i < length; i++) {
-        if(!mpsseWaitIsBusy() || !readRegister(address + i, values[i])) {
+        if(!readRegister(address + i, values[i])) {
              __DEBUG_ERROR__("Can`t write register, "
                 "address:" + std::to_string(address + i));
             
@@ -62,7 +62,7 @@ bool Afe77xxFtdiAccessor::writeRegisters(uint16_t address,
     if(!isInitedMpsseMode()) return false;
 
     for (size_t i = 0; i < length; i++) {
-        if(!mpsseWaitIsBusy() || !writeRegister(address + i, values[i])) {
+        if(!writeRegister(address + i, values[i])) {
              __DEBUG_ERROR__("Can`t write register, "
                 "address:" + std::to_string(address + i));
             

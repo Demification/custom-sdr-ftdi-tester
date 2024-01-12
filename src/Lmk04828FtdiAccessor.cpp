@@ -93,7 +93,7 @@ bool Lmk04828FtdiAccessor::sendSysref(void) {
     return bitbangWrite(0x013E00);
 }
 
-int Lmk04828FtdiAccessor::getLosStatus() {
+bool Lmk04828FtdiAccessor::getLosStatus() {
     uint8_t ret;
     if(!bitbangWriteAndRead(0x818400, &ret)) {
         __DEBUG_ERROR__("Can`t read: 0x818400");
@@ -103,34 +103,24 @@ int Lmk04828FtdiAccessor::getLosStatus() {
     return ret & 0x02;
 }
 
-int Lmk04828FtdiAccessor::getPll1Lock() {
+bool Lmk04828FtdiAccessor::isLockedPll1() {
     uint8_t ret;
     if(!bitbangWriteAndRead(0x818200, &ret)) {
         __DEBUG_ERROR__("Can`t read: 0x818200");
-        return -1;
+        return false;
     }
 
     return ret & 0x02;
 }
 
-int Lmk04828FtdiAccessor::getPll2Lock() {
+bool Lmk04828FtdiAccessor::isLockedPll2() {
     uint8_t ret;
     if(!bitbangWriteAndRead(0x818300, &ret)) {
         __DEBUG_ERROR__("Can`t read: 0x818300");
-        return -1;
+        return false;
     }
 
     return ret & 0x02;
-}
-
-int Lmk04828FtdiAccessor::getHoldover() {
-    uint8_t ret;
-    if(!bitbangWriteAndRead(0x818800, &ret)){
-        __DEBUG_ERROR__("Can`t read: 0x818300");
-        return -1;
-    }
-
-    return ret & 0x10;
 }
 
 bool Lmk04828FtdiAccessor::readRegisters(uint16_t address,
@@ -203,7 +193,7 @@ void Lmk04828FtdiAccessor::initPll1() {
         int cnt = 30; 
         bool lock = false;
         do {
-            if(lock = getPll1Lock()) break;
+            if(lock = isLockedPll1()) break;
             if(getLosStatus()) break;
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); //replace polling by event
@@ -220,7 +210,7 @@ void Lmk04828FtdiAccessor::initPll2() {
     int cnt = 10; //1sec must be parametrized
     bool lock = false;
     do {
-        if(getPll2Lock()) break;
+        if(isLockedPll2()) break;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     while (--cnt);
