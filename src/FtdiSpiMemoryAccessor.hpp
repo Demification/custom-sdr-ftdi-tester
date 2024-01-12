@@ -34,8 +34,8 @@ public:
     bool isInitedMpsseMode() const;
 
     bool mpsseWaitIsBusy();
-    bool mpsseWrite(uint8_t* data, unsigned length, unsigned option);
-    bool mpsseWriteAndRead(uint8_t* data, uint8_t* result, unsigned length, unsigned option);
+    bool mpsseWrite(uint8_t* data, unsigned length);
+    bool mpsseWriteAndRead(uint8_t* data, uint8_t* result, unsigned length);
     
     /**
     * @brief FtdiSpiMemoryAccessor::bitbangWrite

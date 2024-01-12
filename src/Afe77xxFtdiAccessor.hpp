@@ -30,8 +30,9 @@ public:
                              uint8_t* values, 
                              uint32_t length);
 
-private: 
     bool writeRegister(uint16_t address, uint8_t value);
     bool readRegister(uint16_t address, uint8_t& value);
+
+private: 
 };
 

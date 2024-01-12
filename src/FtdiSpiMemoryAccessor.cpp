@@ -43,10 +43,13 @@ const FtdiDeviceInfo::Ptr &FtdiSpiMemoryAccessor::deviceInfo() const {
     return m_info;
 }
 
-bool FtdiSpiMemoryAccessor::mpsseWrite(uint8_t *data, unsigned length, unsigned option)
+bool FtdiSpiMemoryAccessor::mpsseWrite(uint8_t *data, unsigned length)
 {
     if(!m_initedMpsseMode) return false;
-    option |= SPI_TRANSFER_OPTIONS_SIZE_IN_BYTES;
+
+    uint32_t option = SPI_TRANSFER_OPTIONS_SIZE_IN_BYTES | 
+                      SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE |  
+                      SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE;
 
     unsigned int transfered, result;
     if(FT_OK == (result = SPI_Write(m_handle, data, length, &transfered, option))){
@@ -58,10 +61,13 @@ bool FtdiSpiMemoryAccessor::mpsseWrite(uint8_t *data, unsigned length, unsigned 
 }
 
 bool FtdiSpiMemoryAccessor::mpsseWriteAndRead(
-    uint8_t* data, uint8_t* result, unsigned length, unsigned option)
+    uint8_t* data, uint8_t* result, unsigned length)
 {
     if(!m_initedMpsseMode) return false;
-    option |= SPI_TRANSFER_OPTIONS_SIZE_IN_BYTES;
+
+    uint32_t option = SPI_TRANSFER_OPTIONS_SIZE_IN_BYTES | 
+                      SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE |  
+                      SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE;
 
     unsigned int transfered, status;
     if(FT_OK != (status = SPI_ReadWrite(

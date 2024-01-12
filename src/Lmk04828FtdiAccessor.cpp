@@ -66,29 +66,25 @@ bool Lmk04828FtdiAccessor::init(double refClkFreq) {
         computeInitRegsByFrequency(refClkFreq, registers);
     }
 
-    if(!bitbangWrite(0x000090)) 
-        __DEBUG_ERROR__("Can`t write: 0x000090");
-
+    bitbangWrite(0x000090);
     writeRegisters(registers);
 
     if(externalRefFreqIsDefined) {
-        //only if external ref freq is defined
         initPll1();
     }
 
-    //wait for PLL2 lock
     initPll2();
 
     //switch off sync mode
-    if(!bitbangWrite(0x0144FF)) __DEBUG_ERROR__("Can`t write: 0x0144FF"); //switch off sync
-    if(!bitbangWrite(0x013902)) __DEBUG_ERROR__("Can`t write: 0x013902"); //mux = sysref pulser
-    if(!bitbangWrite(0x014313)) __DEBUG_ERROR__("Can`t write: 0x014313"); //sysref_clr = 0, spiPulser mode
+    bitbangWrite(0x0144FF); //switch off sync
+    bitbangWrite(0x013902); //mux = sysref pulser
+    bitbangWrite(0x014313); //sysref_clr = 0, spiPulser mode
 
     //power down of dealay circuits
-    if(!bitbangWrite(0x014002)) __DEBUG_ERROR__("Can`t write: 0x014002"); //sysref_ddly_pd
-    if(!bitbangWrite(0x0106F2)) __DEBUG_ERROR__("Can`t write: 0x0106F2"); //ch1 ddly_pd
-    if(!bitbangWrite(0x010EF2)) __DEBUG_ERROR__("Can`t write: 0x010EF2"); //ch3 ddly_pd
-    if(!bitbangWrite(0x0116F2)) __DEBUG_ERROR__("Can`t write: 0x0116F2"); //ch5 ddly_pd
+    bitbangWrite(0x014002); //sysref_ddly_pd
+    bitbangWrite(0x0106F2); //ch1 ddly_pd
+    bitbangWrite(0x010EF2); //ch3 ddly_pd
+    bitbangWrite(0x0116F2); //ch5 ddly_pd
 
     return true;
 }
@@ -201,32 +197,21 @@ void Lmk04828FtdiAccessor::initPll1() {
 
     if (!(getLosStatus()))
     {
-        if(!bitbangWrite(0x015008)) //holdover off, hitless_sw=0
-            __DEBUG_ERROR__("Can`t write: 0x015008");
+        bitbangWrite(0x015008); //holdover off, hitless_sw=0
+        bitbangWrite(0x014B72); //off holdover force, MAN_DAC_ENA=0
 
-        if(!bitbangWrite(0x014B72)) //off holdover force, MAN_DAC_ENA=0
-            __DEBUG_ERROR__("Can`t write: 0x014B72");
-
-        //wait for PLL1 lock
-        int cnt = 30; //3sec must be parametrized
+        int cnt = 30; 
         bool lock = false;
-        do
-        {
-            if(getPll1Lock()) break;
+        do {
+            if(lock = getPll1Lock()) break;
+            if(getLosStatus()) break;
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); //replace polling by event
-
-            if(getLosStatus()) break;
         }
         while (--cnt);
 
-        if(!bitbangWrite(0x01500B)) //holdover on, hitless_sw=1
-            __DEBUG_ERROR__("Can`t write: 0x01500B");
-
-        if (!lock) {
-            if(!bitbangWrite(0x014B7E)) //holdover force on, MAN_DAC_ENA=1
-                __DEBUG_ERROR__("Can`t write: 0x014B7E");
-        }
+        bitbangWrite(0x01500B); //holdover on, hitless_sw=1
+        if (!lock) bitbangWrite(0x014B7E); //holdover force on, MAN_DAC_ENA=1
     }
 }
 
@@ -234,11 +219,9 @@ void Lmk04828FtdiAccessor::initPll2() {
     uint8_t ret;
     int cnt = 10; //1sec must be parametrized
     bool lock = false;
-    do
-    {
-        if (getPll2Lock()) break;
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); //replace polling by event
+    do {
+        if(getPll2Lock()) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     while (--cnt);
 }
@@ -286,25 +269,25 @@ bool Lmk04828FtdiAccessor::setVcxcoTrimRegs(
 bool Lmk04828FtdiAccessor::computeInitRegsByFrequency(
     double frequency, std::map<RegisterAddr, RegisterValue>& registers)
 {
-    const double LMK04828_VCXCO_FREQ = 122.88e6;
-    const double LMK04828_PLL1_MAX_FPFD = 1.2e6;
-    const double LMK04828_PLL1_MIN_FPFD = 80e3;
-    const double LMK04828_MAX_R_DIV = 16363L;
-    const double LMK04828_MAX_N_DIV = 16363L;
-    const double LMK04828_MAX_DLD_CNT = 16363L;
-    const double LMK04828_DLD_PREC = 5e-7;
-    const double LMK04828_WND_SIZE = 4e-9;
+    const double VcxcoFreq = 122.88e6;
+    const double Pll1MaxFreq = 1.2e6;
+    const double Pll1MinFreq = 80e3;
+    const double MaxDividerR = 16363L;
+    const double MaxDividerN = 16363L;
+    const double MaxDldCnt = 16363L;
+    const double DldPrec = 5e-7;
+    const double WndSize = 4e-9;
 
     int dividerN = 0, 
-        dividerR = floor(frequency / LMK04828_PLL1_MAX_FPFD);
+        dividerR = floor(frequency / Pll1MaxFreq);
 
     double fpfd;
 
     bool valid = false;
-    while ((fpfd = frequency / dividerR) >= LMK04828_PLL1_MIN_FPFD 
-        && dividerR <= LMK04828_MAX_R_DIV)
+    while ((fpfd = frequency / dividerR) >= Pll1MinFreq 
+        && dividerR <= MaxDividerR)
     {
-	    double Nf = LMK04828_VCXCO_FREQ / fpfd;
+	    double Nf = VcxcoFreq / fpfd;
 	    dividerN = (int)Nf;
 	    if (dividerN > 8191) 
             break;
@@ -331,8 +314,8 @@ bool Lmk04828FtdiAccessor::computeInitRegsByFrequency(
 	    //@0x15B <= CP | 0x10;
         registers[0x15B] = (uint8_t)cp;
 	    
-        double value = lround(fpfd * (LMK04828_WND_SIZE / LMK04828_DLD_PREC));
-        int dldCnt = std::min(value, LMK04828_MAX_DLD_CNT);
+        double value = lround(fpfd * (WndSize / DldPrec));
+        int dldCnt = std::min(value, MaxDldCnt);
 
 	    //@0x15C..0x15D <= dldCnt;
         registers[0x15C] = hi(dldCnt);

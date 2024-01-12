@@ -12,11 +12,12 @@
 
 Afe77xxFtdiAccessor::Afe77xxFtdiAccessor(FtdiDeviceInfoList::Ptr infoList) 
     : FtdiSpiMemoryAccessor(ChannelConfig_t {.ClockRate = 20000000,
-                                           .LatencyTimer = 0,
-                                           .configOptions = SPI_CONFIG_OPTION_MODE0 | 
-                                                            SPI_CONFIG_OPTION_CS_DBUS3 | 
-                                                            SPI_CONFIG_OPTION_CS_ACTIVELOW, 
-                                           .Pin = 0 }, 
+                                             .LatencyTimer = 0,
+                                             .configOptions = SPI_CONFIG_OPTION_MODE0 | 
+                                                              SPI_CONFIG_OPTION_CS_DBUS3 | 
+                                                              SPI_CONFIG_OPTION_CS_ACTIVELOW, 
+                                             .Pin = 0x0BUL | (0x08UL << 8) | (0x0BUL<<16) | (0x08UL << 24),
+                                             .currentPinState = 0x0BUL | (0x08UL << 8) }, 
                             infoList->getByIndex(0), 0) 
 {
     if(isInitedMpsseMode())
@@ -26,8 +27,9 @@ Afe77xxFtdiAccessor::Afe77xxFtdiAccessor(FtdiDeviceInfoList::Ptr infoList)
 bool Afe77xxFtdiAccessor::init() {
     if(!isInitedMpsseMode()) return false;
 
-    writeRegister(0x00, 0x30);
-    writeRegister(0x01, 0x00);
+    if(!writeRegister(0x00, 0x30) || 
+            !writeRegister(0x01, 0x00))
+        return false;
 
     return true;
 }
@@ -86,9 +88,7 @@ bool Afe77xxFtdiAccessor::readRegistersBurst(uint16_t address,
     memset(&data[2], 0, length);
 
     if(!mpsseWaitIsBusy() || 
-        !mpsseWriteAndRead(data.get(), data.get(), size, 
-                        SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE |  
-                        SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE)) 
+        !mpsseWriteAndRead(data.get(), data.get(), size))
     {
          __DEBUG_ERROR__("Can`t write register, "
                 "address:" + std::to_string(address));
@@ -116,9 +116,7 @@ bool Afe77xxFtdiAccessor::writeRegistersBurst(uint16_t address,
     memcpy(&data[2], values, length);
 
     if(!mpsseWaitIsBusy() || 
-        !mpsseWrite(data.get(), size, 
-                        SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE |  
-                        SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE)) 
+        !mpsseWrite(data.get(), size))
     {
          __DEBUG_ERROR__("Can`t write register, "
                 "address:" + std::to_string(address));
@@ -131,27 +129,26 @@ bool Afe77xxFtdiAccessor::writeRegistersBurst(uint16_t address,
 bool Afe77xxFtdiAccessor::writeRegister(uint16_t address,
                                         uint8_t value)
 {
+    if(!mpsseWaitIsBusy()) return false;
+
     auto paddr = ((uint8_t*)&address) + 1;
     uint8_t packet[3] = {*paddr, *(--paddr), value};
 
-    return mpsseWrite(packet, 3, 
-                        SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE |  
-                        SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE);
+    return mpsseWrite(packet, 3);
 }
 
 bool Afe77xxFtdiAccessor::readRegister(uint16_t address, 
                                        uint8_t &value)
 {
-    uint8_t read_packet[3];
+    if(!mpsseWaitIsBusy()) return false;
+
+    uint8_t read_packet[3] = {0};
 
     auto paddr = ((uint8_t*)&address) + 1;
-    uint8_t write_packet[3] = {*paddr, *(--paddr), 0xff};
+    uint8_t write_packet[3] = {*paddr, *(--paddr), 0x00};
     write_packet[0] |= 0x80;
 
-    if(!mpsseWriteAndRead(write_packet, read_packet, 3, 
-                                SPI_TRANSFER_OPTIONS_CHIPSELECT_ENABLE |  
-                                SPI_TRANSFER_OPTIONS_CHIPSELECT_DISABLE))
-    {
+    if(!mpsseWriteAndRead(write_packet, read_packet, 3)) {
         return false;
     }
 
