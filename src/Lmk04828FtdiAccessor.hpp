@@ -13,8 +13,8 @@ public:
     Lmk04828FtdiAccessor(FtdiDeviceInfoList::Ptr infoList);
     virtual ~Lmk04828FtdiAccessor() = default;
 
-    bool write(uint32_t dataToWrire);
-    bool read(uint32_t dataToWrire, uint32_t* readData);
+    bool write(uint32_t data);
+    bool read(uint32_t data, uint8_t& value);
 
     bool init(double refClkFreq = 0.0);
     bool sendSysref();

@@ -25,15 +25,15 @@ Lmk04828FtdiAccessor::Lmk04828FtdiAccessor(FtdiDeviceInfoList::Ptr infoList)
         __DEBUG_INFO__("Lmk04828 ftdi accessor info:" + deviceInfo()->string());
 }
 
-bool Lmk04828FtdiAccessor::write(uint32_t dataToWrire) {
-    return bitbangWrite(dataToWrire);
+bool Lmk04828FtdiAccessor::write(uint32_t data) {
+    return bitbangWrite(data);
 }
 
-bool Lmk04828FtdiAccessor::read(uint32_t dataToWrire, uint32_t *readData) {
+bool Lmk04828FtdiAccessor::read(uint32_t data, uint8_t& value) {
         unsigned char d[3];
 
     for (int k = 0; k < 3; ++k)
-        d[2 - k] = dataToWrire >> (k * 8);
+        d[2 - k] = data >> (k * 8);
 
     bool result = false;
     unsigned int written;
@@ -41,7 +41,7 @@ bool Lmk04828FtdiAccessor::read(uint32_t dataToWrire, uint32_t *readData) {
         if(3 != written) 
             return false;
 
-        *readData = d[2];
+        value = d[2];
     }
     
     return result;
