@@ -1,41 +1,45 @@
+#include <thread>
+#include <chrono>
+
 #include "Debug.hpp"
 #include "afe77xx.h"
 #include "FtdiDeviceInfoList.hpp"
-#include "Lmk04828FtdiAccessor.hpp"
-#include "Afe77xxFtdiAccessor.hpp"
+#include "Lmk4828FtdiAccessor.hpp"
+#include "Afe7769FtdiAccessor.hpp"
 #include "Settings.hpp"
 
 int main(int argc, char** argv) 
 {
-    Settings::instance().setVcxcoTrim(640);
-
     auto infoList = FtdiDeviceInfoList::create();
     infoList->printAllDeviceInfo();
 
-    Lmk04828FtdiAccessor lmk(infoList);
+    Lmk4828FtdiAccessor lmk(infoList);
     if(!lmk.init(10000000)){
         __DEBUG_ERROR__("Lmk not inited.");
-        return 1;
     }
 
-    lmk.sendSysref();
+    lmk.sysref();
     
-    Afe77xxFtdiAccessor afe(infoList);
+    Afe7769FtdiAccessor afe(infoList);
     if(!afe.init()){
-        __DEBUG_ERROR__("Afe not inited.");
-        return 1;                                                                                                                                                                          
+        __DEBUG_ERROR__("Afe not inited.");                                                                                                                                                                        
     }
 
-    uint8_t value;
-    afe.readRegister(0x01, value);
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    /*AFE77xx_RegIfSet(afe.handle());
-    int fd = AFE77xx_RegIfGetFd();
-
-    U32 data;
-    AFE77xx_RegWrite(fd, 0x000130, 0x30);
-    AFE77xx_RegRead(fd, 0x800100, &data);*/
-
-
+        Lmk4828Status status;
+        if(lmk.status(status)) {
+            std::cout << "dac: " << status.dac << "  ";
+            std::cout << "clkLOS: " << status.clkLOS << "  ";
+            std::cout << "dacTrackLock: " << status.dacTrackLock << "  ";
+            std::cout << "holdOver: " << status.holdOver << "  ";
+            std::cout << "pll1Lock: " << status.pll1Lock << "  ";
+            std::cout << "pll1LockLost: " << status.pll1LockLost << "  ";
+            std::cout << "pll2Lock: " << status.pll2Lock << "  ";
+            std::cout << "pll2LockLost: " << status.pll2LockLost << std::endl;
+        }
+    }
+    
     return 0;
 }

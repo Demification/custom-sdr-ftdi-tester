@@ -26,6 +26,7 @@ public:
 
     void printAllDeviceInfo() const;
 
+    bool empty() const;
     std::map<int, FtdiDeviceInfo::Ptr> get() const;
 
     FtdiDeviceInfo::Ptr getByIndex(int index) const;

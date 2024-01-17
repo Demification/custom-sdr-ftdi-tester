@@ -1,14 +1,9 @@
 #include "Settings.hpp"
-
-#include <libgen.h>
-#include <unistd.h>
-#include <linux/limits.h>
-
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-//#include "Version.hpp"
 #include "Debug.hpp"
+#include "Utilits.hpp"
 
 Settings::~Settings() {
     save();
@@ -41,13 +36,13 @@ void Settings::setVcxcoTrim(uint16_t value) {
 }
 
 Settings::Settings(): m_settings() {
-    char result[PATH_MAX];
-    readlink("/proc/self/exe", result, PATH_MAX);
-    m_path = std::string(dirname(result)) + "/settings.json";
+    m_path = getApplicationDirPath() + "/settings.json";
 
     if(!boost::filesystem::exists(m_path)){
         boost::property_tree::ptree root;
-        root.put("version", /*getVersion()*/ "version");
+
+        PllConfig config {.init_freq = 10000000, .vcxco_trim = 512};
+        config.fill(PllConfig::Type::All, root);
 
         std::ofstream ofs(m_path); 
         boost::property_tree::write_json(ofs, root);

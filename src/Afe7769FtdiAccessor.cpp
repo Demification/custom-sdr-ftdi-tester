@@ -1,4 +1,4 @@
-#include "Afe77xxFtdiAccessor.hpp"
+#include "Afe7769FtdiAccessor.hpp"
 #include <string.h>
 
 #include <thread>
@@ -10,7 +10,7 @@
 #include "afe77xx.h"
 #include "Debug.hpp"
 
-Afe77xxFtdiAccessor::Afe77xxFtdiAccessor(FtdiDeviceInfoList::Ptr infoList) 
+Afe7769FtdiAccessor::Afe7769FtdiAccessor(FtdiDeviceInfoList::Ptr infoList) 
     : FtdiSpiMemoryAccessor(ChannelConfig_t {.ClockRate = 20000000,
                                              .LatencyTimer = 0,
                                              .configOptions = SPI_CONFIG_OPTION_MODE0 | 
@@ -20,11 +20,15 @@ Afe77xxFtdiAccessor::Afe77xxFtdiAccessor(FtdiDeviceInfoList::Ptr infoList)
                                              .currentPinState = 0x0BUL | (0x08UL << 8) }, 
                             infoList->getByIndex(0), 0) 
 {
-    if(isInitedMpsseMode())
-        __DEBUG_INFO__("Afe77xx ftdi accessor info:" + deviceInfo()->string());
+    if(!isInitedMpsseMode())
+        __DEBUG_INFO__("Afe7769 ftdi accessor not inited.");
 }
 
-bool Afe77xxFtdiAccessor::init() {
+AccessorType Afe7769FtdiAccessor::type() const {
+    return AccessorType::AFE7769;
+}
+
+bool Afe7769FtdiAccessor::init() {
     if(!isInitedMpsseMode()) return false;
 
     if(!writeRegister(0x00, 0x30) || 
@@ -34,11 +38,11 @@ bool Afe77xxFtdiAccessor::init() {
     return true;
 }
 
-void *Afe77xxFtdiAccessor::handle() {
+void *Afe7769FtdiAccessor::handle() {
     return FtdiSpiMemoryAccessor::handle();
 }
 
-bool Afe77xxFtdiAccessor::readRegisters(uint16_t address, 
+bool Afe7769FtdiAccessor::readRegisters(uint16_t address, 
                                         uint8_t *values, 
                                         uint32_t length) 
 {
@@ -55,7 +59,7 @@ bool Afe77xxFtdiAccessor::readRegisters(uint16_t address,
     return true;
 }
 
-bool Afe77xxFtdiAccessor::writeRegisters(uint16_t address, 
+bool Afe7769FtdiAccessor::writeRegisters(uint16_t address, 
                                          uint8_t *values, 
                                          uint32_t length) 
 {
@@ -72,7 +76,7 @@ bool Afe77xxFtdiAccessor::writeRegisters(uint16_t address,
     return true;
 }
 
-bool Afe77xxFtdiAccessor::readRegistersBurst(uint16_t address, 
+bool Afe7769FtdiAccessor::readRegistersBurst(uint16_t address, 
                                              uint8_t *values, 
                                              uint32_t length)
 {
@@ -100,7 +104,7 @@ bool Afe77xxFtdiAccessor::readRegistersBurst(uint16_t address,
     return true;
 }
 
-bool Afe77xxFtdiAccessor::writeRegistersBurst(uint16_t address, 
+bool Afe7769FtdiAccessor::writeRegistersBurst(uint16_t address, 
                                               uint8_t *values, 
                                               uint32_t length)
 {
@@ -126,7 +130,7 @@ bool Afe77xxFtdiAccessor::writeRegistersBurst(uint16_t address,
     return true;
 }
 
-bool Afe77xxFtdiAccessor::writeRegister(uint16_t address,
+bool Afe7769FtdiAccessor::writeRegister(uint16_t address,
                                         uint8_t value)
 {
     if(!mpsseWaitIsBusy()) return false;
@@ -137,7 +141,7 @@ bool Afe77xxFtdiAccessor::writeRegister(uint16_t address,
     return mpsseWrite(packet, 3);
 }
 
-bool Afe77xxFtdiAccessor::readRegister(uint16_t address, 
+bool Afe7769FtdiAccessor::readRegister(uint16_t address, 
                                        uint8_t &value)
 {
     if(!mpsseWaitIsBusy()) return false;

@@ -11,7 +11,7 @@ FtdiSpiMemoryAccessor::FtdiSpiMemoryAccessor(const BitbangConfig &config,
     : m_bitbangConfig(config),
       m_info(info)
 {
-    if(initBitbangMode(info, config)) {
+    if(info.get() && initBitbangMode(info, config)) {
         m_initedBitbangMode = true;
     }
 }
@@ -20,12 +20,7 @@ FtdiSpiMemoryAccessor::FtdiSpiMemoryAccessor(const ChannelConfig_t &config,
                                              const FtdiDeviceInfo::Ptr &info, int id)
     : m_info(info)
 {
-    if(!info.get()) {
-        __DEBUG_ERROR__("Info is nullptr.");
-        return;
-    }
-
-    if(initMpsseMode(id, config)) {
+    if(info.get() && initMpsseMode(id, config)) {
         m_initedMpsseMode = true;
     }
 }

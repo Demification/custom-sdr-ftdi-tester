@@ -21,15 +21,19 @@ void FtdiDeviceInfoList::printAllDeviceInfo() const {
             + info.second->description);
 }
 
+bool FtdiDeviceInfoList::empty() const {
+    return m_ftdiDevices.empty();
+}
+
 std::map<int, FtdiDeviceInfo::Ptr> FtdiDeviceInfoList::get() const {
     return m_ftdiDevices;
 }
 
 FtdiDeviceInfo::Ptr FtdiDeviceInfoList::getByIndex(int index) const {
-    if(m_ftdiDevices.empty()) 
-        return FtdiDeviceInfo::Ptr(nullptr);
+    if(m_ftdiDevices.empty() || m_ftdiDevices.find(index) == m_ftdiDevices.end()) 
+        return nullptr;
         
-    return m_ftdiDevices.at(0);
+    return m_ftdiDevices.at(index);
 }
 
 FtdiDeviceInfo::Ptr FtdiDeviceInfoList::getByDescription(

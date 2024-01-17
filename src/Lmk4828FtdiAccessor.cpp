@@ -1,4 +1,4 @@
-#include "Lmk04828FtdiAccessor.hpp"
+#include "Lmk4828FtdiAccessor.hpp"
 #include <math.h>
 #include <string.h>
 
@@ -12,24 +12,32 @@
 #include "ftdi.h"
 #include "Debug.hpp"
 #include "Settings.hpp"
-#include "Lmk04828InitRegisters.hpp"
+#include "Lmk4828InitRegisters.hpp"
 
-Lmk04828FtdiAccessor::Lmk04828FtdiAccessor(FtdiDeviceInfoList::Ptr infoList)
+Lmk4828FtdiAccessor::Lmk4828FtdiAccessor(FtdiDeviceInfoList::Ptr infoList)
     : FtdiSpiMemoryAccessor(BitbangConfig{ .sck  = 0x04, 
                                            .mosi = 0x08, 
                                            .miso = 0x01, 
                                            .nss  = 0x02 }, 
                             infoList->getByDescription("Quad RS232-HS D")) 
 {
-    if(isInitedBitbangMode())
-        __DEBUG_INFO__("Lmk04828 ftdi accessor info:" + deviceInfo()->string());
+    if(!isInitedBitbangMode()) {
+        __DEBUG_INFO__("Lmk4828 ftdi accessor not inited.");
+        return;
+    }
+
+    init(Settings::instance().getPllConfig()->init_freq);
 }
 
-bool Lmk04828FtdiAccessor::write(uint32_t data) {
+AccessorType Lmk4828FtdiAccessor::type() const {
+    return AccessorType::LMK4828;
+}
+
+bool Lmk4828FtdiAccessor::write(uint32_t data) {
     return bitbangWrite(data);
 }
 
-bool Lmk04828FtdiAccessor::read(uint32_t data, uint8_t& value) {
+bool Lmk4828FtdiAccessor::read(uint32_t data, uint8_t& value) {
         unsigned char d[3];
 
     for (int k = 0; k < 3; ++k)
@@ -47,7 +55,7 @@ bool Lmk04828FtdiAccessor::read(uint32_t data, uint8_t& value) {
     return result;
 }
 
-bool Lmk04828FtdiAccessor::init(double refClkFreq) {
+bool Lmk4828FtdiAccessor::init(double refClkFreq) {
     if(!isInitedBitbangMode()) return false;
 
     if(refClkFreq == -1.0) {
@@ -57,7 +65,7 @@ bool Lmk04828FtdiAccessor::init(double refClkFreq) {
     bool externalRefFreqIsDefined = refClkFreq != 0.0 ? true : false;
 
     std::map<RegisterAddr, RegisterValue> registers;
-    parseInitRegs(Lmk04828InitRegisters, registers);
+    parseInitRegs(Lmk4828InitRegisters, registers);
 
     auto vcxcoTrim = Settings::instance().getPllConfig()->vcxco_trim;
     setVcxcoTrimRegs(vcxcoTrim, registers);
@@ -89,11 +97,53 @@ bool Lmk04828FtdiAccessor::init(double refClkFreq) {
     return true;
 }
 
-bool Lmk04828FtdiAccessor::sendSysref(void) {
+bool Lmk4828FtdiAccessor::sysref(void) {
     return bitbangWrite(0x013E00);
 }
 
-bool Lmk04828FtdiAccessor::getLosStatus() {
+bool Lmk4828FtdiAccessor::status(Lmk4828Status &value) {
+    bool result = true;
+
+    uint8_t regPll1;
+    if(read(0x818200, regPll1)) {
+        value.pll1Lock = regPll1 & 0x02 ? 1 : 0;
+        value.pll1LockLost = regPll1 & 0x04 ? 1 : 0;
+        if(value.pll1LockLost) {
+            write(0x018201);
+            write(0x018200);
+        }
+    } else result = false;
+
+    uint8_t regPll2;
+    if(read(0x818300, regPll2)) {
+        value.pll2Lock = regPll2 & 0x02 ? 1 : 0;
+        value.pll2LockLost = regPll2 & 0x04 ? 1 : 0;
+        if(value.pll2LockLost) {
+            write(0x018301);
+            write(0x018300);
+        }
+    } else result = false;
+
+    uint8_t reg188;
+    if(read(0x818800, reg188)) {
+        value.holdOver = reg188 & 0x10 ? 1 : 0;
+    } else result = false;
+
+    uint8_t reg184, reg185;
+    if(read(0x818400, reg184) 
+        && read(0x818500, reg185)) 
+    {
+        value.clkLOS = reg184 & 0x03 ? 1 : 0;
+
+        uint16_t dac = ((uint16_t)(reg184 >> 6)) << 8;
+        dac |= reg185;
+        value.dac = dac;
+    } else result = false;
+
+    return result;
+}
+
+bool Lmk4828FtdiAccessor::getLosStatus() {
     uint8_t ret;
     if(!bitbangWriteAndRead(0x818400, &ret)) {
         __DEBUG_ERROR__("Can`t read: 0x818400");
@@ -103,7 +153,7 @@ bool Lmk04828FtdiAccessor::getLosStatus() {
     return ret & 0x02;
 }
 
-bool Lmk04828FtdiAccessor::isLockedPll1() {
+bool Lmk4828FtdiAccessor::isLockedPll1() {
     uint8_t ret;
     if(!bitbangWriteAndRead(0x818200, &ret)) {
         __DEBUG_ERROR__("Can`t read: 0x818200");
@@ -113,7 +163,7 @@ bool Lmk04828FtdiAccessor::isLockedPll1() {
     return ret & 0x02;
 }
 
-bool Lmk04828FtdiAccessor::isLockedPll2() {
+bool Lmk4828FtdiAccessor::isLockedPll2() {
     uint8_t ret;
     if(!bitbangWriteAndRead(0x818300, &ret)) {
         __DEBUG_ERROR__("Can`t read: 0x818300");
@@ -123,7 +173,7 @@ bool Lmk04828FtdiAccessor::isLockedPll2() {
     return ret & 0x02;
 }
 
-bool Lmk04828FtdiAccessor::readRegisters(uint16_t address,
+bool Lmk4828FtdiAccessor::readRegisters(uint16_t address,
                                          uint8_t *values,
                                          uint32_t length)
 {
@@ -140,7 +190,7 @@ bool Lmk04828FtdiAccessor::readRegisters(uint16_t address,
     return true;
 }
 
-bool Lmk04828FtdiAccessor::writeRegisters(uint16_t address, 
+bool Lmk4828FtdiAccessor::writeRegisters(uint16_t address, 
                                          uint8_t *values, 
                                          uint32_t length) 
 {
@@ -157,7 +207,7 @@ bool Lmk04828FtdiAccessor::writeRegisters(uint16_t address,
     return true;
 }
 
-bool Lmk04828FtdiAccessor::writeRegister(uint16_t address, uint8_t value) {
+bool Lmk4828FtdiAccessor::writeRegister(uint16_t address, uint8_t value) {
     auto paddr = ((uint8_t*)&address) + 1;
     uint8_t packet[3] = {*paddr, *(--paddr), value};
 
@@ -165,7 +215,7 @@ bool Lmk04828FtdiAccessor::writeRegister(uint16_t address, uint8_t value) {
     return bitbangWrite(packet, 3, &written);
 }
 
-bool Lmk04828FtdiAccessor::readRegister(uint16_t address, uint8_t &value) {
+bool Lmk4828FtdiAccessor::readRegister(uint16_t address, uint8_t &value) {
     auto paddr = ((uint8_t*)&address) + 1;
     uint8_t packet[3] = {*paddr, *(--paddr), 0xff};
     packet[0] |= 0x80;
@@ -182,7 +232,7 @@ bool Lmk04828FtdiAccessor::readRegister(uint16_t address, uint8_t &value) {
     return result;
 }
 
-void Lmk04828FtdiAccessor::initPll1() {
+void Lmk4828FtdiAccessor::initPll1() {
     uint8_t ret;
 
     if (!(getLosStatus()))
@@ -205,7 +255,7 @@ void Lmk04828FtdiAccessor::initPll1() {
     }
 }
 
-void Lmk04828FtdiAccessor::initPll2() {
+void Lmk4828FtdiAccessor::initPll2() {
     uint8_t ret;
     int cnt = 10; //1sec must be parametrized
     bool lock = false;
@@ -216,7 +266,7 @@ void Lmk04828FtdiAccessor::initPll2() {
     while (--cnt);
 }
 
-bool Lmk04828FtdiAccessor::parseInitRegs(
+bool Lmk4828FtdiAccessor::parseInitRegs(
     const std::string &text, std::map<RegisterAddr, RegisterValue> &registers)
 {
     std::stringstream stream(text);
@@ -234,7 +284,7 @@ bool Lmk04828FtdiAccessor::parseInitRegs(
     return true;
 }
 
-bool Lmk04828FtdiAccessor::setVcxcoTrimRegs(
+bool Lmk4828FtdiAccessor::setVcxcoTrimRegs(
     uint16_t value, std::map<RegisterAddr, RegisterValue> &registers)
 {
     if(value == -1) {
@@ -256,7 +306,7 @@ bool Lmk04828FtdiAccessor::setVcxcoTrimRegs(
     return true;
 }
 
-bool Lmk04828FtdiAccessor::computeInitRegsByFrequency(
+bool Lmk4828FtdiAccessor::computeInitRegsByFrequency(
     double frequency, std::map<RegisterAddr, RegisterValue>& registers)
 {
     const double VcxcoFreq = 122.88e6;
@@ -319,7 +369,7 @@ bool Lmk04828FtdiAccessor::computeInitRegsByFrequency(
     return true;
 }
 
-void Lmk04828FtdiAccessor::writeRegisters(
+void Lmk4828FtdiAccessor::writeRegisters(
     std::map<RegisterAddr, RegisterValue> &registers) 
 {
     for(auto reg: registers) {

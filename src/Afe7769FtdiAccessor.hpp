@@ -1,15 +1,14 @@
 #pragma once
 #include <memory>
-
+#include "AbstractAccessor.hpp"
 #include "FtdiSpiMemoryAccessor.hpp"
 
-class Afe77xxFtdiAccessor: protected FtdiSpiMemoryAccessor
+class Afe7769FtdiAccessor: public AbstractAccessor, 
+                           protected FtdiSpiMemoryAccessor
 {
 public:
-    using UPtr = std::unique_ptr<Afe77xxFtdiAccessor>;
-
-    Afe77xxFtdiAccessor(FtdiDeviceInfoList::Ptr infoList);
-    virtual ~Afe77xxFtdiAccessor() = default;
+    Afe7769FtdiAccessor(FtdiDeviceInfoList::Ptr infoList);
+    AccessorType type() const override;
 
     bool init();
     void* handle();
