@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "AbstractAccessor.hpp"
-#include "FtdiSpiMemoryAccessor.hpp"
+#include "FtdiSpiAccessProvider.hpp"
 
 typedef uint16_t RegisterAddr;
 typedef uint8_t  RegisterValue;
@@ -20,7 +20,7 @@ struct Lmk4828Status {
 };
 
 class Lmk4828FtdiAccessor: public AbstractAccessor, 
-                           protected FtdiSpiMemoryAccessor
+                           protected FtdiSpiAccessProvider
 {
 public:
     Lmk4828FtdiAccessor(FtdiDeviceInfoList::Ptr infoList);
@@ -31,7 +31,7 @@ public:
 
     bool init(double refClkFreq = 0.0);
     
-    bool sysref();
+    bool sendSysref();
     bool status(Lmk4828Status& value);
     
     bool readRegisters(uint16_t address, 

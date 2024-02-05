@@ -14,23 +14,23 @@ Settings &Settings::instance() {
 	return settings;
 }
 
-PllConfig::Ptr Settings::getPllConfig() const {
-    auto config = PllConfig::Ptr(new PllConfig);
-    config->from(PllConfig::Type::All, m_settings);
+PllSystemDeviceParam::Ptr Settings::getPllSystemDeviceConfig() const {
+    auto config = PllSystemDeviceParam::Ptr(new PllSystemDeviceParam);
+    config->from(PllSystemDeviceParam::SelectAll, m_settings);
 
     return config;
 }
 
 void Settings::setInitFreq(double value) {
-    PllConfig config {.init_freq = value};
-    config.fill(PllConfig::Type::InitFreq, m_settings);
+    PllSystemDeviceParam config {.init_freq = value};
+    config.fill(PllSystemDeviceParam::SelectInitFreq, m_settings);
 
     save();
 }
 
 void Settings::setVcxcoTrim(uint16_t value) {
-    PllConfig config {.vcxco_trim = value};
-    config.fill(PllConfig::Type::VcxcoTrim, m_settings);
+    PllSystemDeviceParam config {.vcxco_trim = value};
+    config.fill(PllSystemDeviceParam::SelectVcxcoTrim, m_settings);
 
     save();
 }
@@ -41,8 +41,8 @@ Settings::Settings(): m_settings() {
     if(!boost::filesystem::exists(m_path)){
         boost::property_tree::ptree root;
 
-        PllConfig config {.init_freq = 10000000, .vcxco_trim = 512};
-        config.fill(PllConfig::Type::All, root);
+        PllSystemDeviceParam config {.init_freq = 10000000, .vcxco_trim = 512};
+        config.fill(PllSystemDeviceParam::SelectAll, root);
 
         std::ofstream ofs(m_path); 
         boost::property_tree::write_json(ofs, root);

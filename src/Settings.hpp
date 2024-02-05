@@ -6,7 +6,7 @@
 #include <boost/bind.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include "PllConfig.hpp"
+#include "PllSystemDeviceParam.hpp"
 
 class Settings
 {
@@ -14,7 +14,7 @@ public:
 	~Settings();
 	static Settings& instance();
 
-    PllConfig::Ptr getPllConfig() const;
+    PllSystemDeviceParam::Ptr getPllSystemDeviceConfig() const;
 
     void setInitFreq(double value);
     void setVcxcoTrim(uint16_t value);

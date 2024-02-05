@@ -13,19 +13,18 @@ struct BitbangConfig {
 };
 
 struct ChannelConfig_t;
-
-class FtdiSpiMemoryAccessor
+class FtdiSpiAccessProvider
 {
 public:
-    using UPtr = std::unique_ptr<FtdiSpiMemoryAccessor>;
+    using UPtr = std::unique_ptr<FtdiSpiAccessProvider>;
 
-    FtdiSpiMemoryAccessor(const BitbangConfig& config, 
+    FtdiSpiAccessProvider(const BitbangConfig& config, 
                           const FtdiDeviceInfo::Ptr& info);
 
-    FtdiSpiMemoryAccessor(const ChannelConfig_t& config, 
+    FtdiSpiAccessProvider(const ChannelConfig_t& config, 
                           const FtdiDeviceInfo::Ptr& info, int id);
 
-    virtual ~FtdiSpiMemoryAccessor();
+    virtual ~FtdiSpiAccessProvider();
 
     void* handle() const;
     const FtdiDeviceInfo::Ptr& deviceInfo() const;
@@ -38,7 +37,7 @@ public:
     bool mpsseWriteAndRead(uint8_t* data, uint8_t* result, unsigned length);
     
     /**
-    * @brief FtdiSpiMemoryAccessor::bitbangWrite
+    * @brief FtdiSpiAccessProvider::bitbangWrite
     * write 3 bytes: 2 byte address and 1 byte of data
     * sendibg starts from 2nd byte from MSB (1st MSB is ignored)
     * @param data packed 3 byte
@@ -47,7 +46,7 @@ public:
     bool bitbangWrite(uint32_t data);
 
     /**
-    * @brief FtdiSpiMemoryAccessor::bitbangWrite
+    * @brief FtdiSpiAccessProvider::bitbangWrite
     *  cteate 5MHz SCK and write bytes bit by bit (MSB first)
     * @param data - bytes to write
     * @param length - data length in bytes
@@ -59,7 +58,7 @@ public:
                       unsigned int *written);
 
     /**
-    * @brief FtdiSpiMemoryAccessor::bitbangWriteAndRead
+    * @brief FtdiSpiAccessProvider::bitbangWriteAndRead
     * write 2 bytes: 2 byte address
     * sendibg starts from 2nd byte from MSB (1st MSB is ignored)
     * @param data packed 2 byte
@@ -69,7 +68,7 @@ public:
     bool bitbangWriteAndRead(uint32_t data, uint8_t *result);
 
     /**
-    * @brief FtdiSpiMemoryAccessor::bitbangWriteAndRead
+    * @brief FtdiSpiAccessProvider::bitbangWriteAndRead
     * sync mode must be ON
     * @param data - bytes to write and read
     * @param len - data length in bytes

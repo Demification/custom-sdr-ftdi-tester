@@ -1,4 +1,4 @@
-#include "FtdiSpiMemoryAccessor.hpp"
+#include "FtdiSpiAccessProvider.hpp"
 #include <thread>
 #include <chrono>
 
@@ -6,7 +6,7 @@
 #include "ftdi.h"
 #include "Debug.hpp"
 
-FtdiSpiMemoryAccessor::FtdiSpiMemoryAccessor(const BitbangConfig &config, 
+FtdiSpiAccessProvider::FtdiSpiAccessProvider(const BitbangConfig &config, 
                                              const FtdiDeviceInfo::Ptr& info)
     : m_bitbangConfig(config),
       m_info(info)
@@ -16,7 +16,7 @@ FtdiSpiMemoryAccessor::FtdiSpiMemoryAccessor(const BitbangConfig &config,
     }
 }
 
-FtdiSpiMemoryAccessor::FtdiSpiMemoryAccessor(const ChannelConfig_t &config, 
+FtdiSpiAccessProvider::FtdiSpiAccessProvider(const ChannelConfig_t &config, 
                                              const FtdiDeviceInfo::Ptr &info, int id)
     : m_info(info)
 {
@@ -25,20 +25,20 @@ FtdiSpiMemoryAccessor::FtdiSpiMemoryAccessor(const ChannelConfig_t &config,
     }
 }
 
-FtdiSpiMemoryAccessor::~FtdiSpiMemoryAccessor() {
+FtdiSpiAccessProvider::~FtdiSpiAccessProvider() {
     if(m_handle)
         FTD2_Close(m_handle);
 }
 
-void *FtdiSpiMemoryAccessor::handle() const {
+void *FtdiSpiAccessProvider::handle() const {
     return m_handle;
 }
 
-const FtdiDeviceInfo::Ptr &FtdiSpiMemoryAccessor::deviceInfo() const {
+const FtdiDeviceInfo::Ptr &FtdiSpiAccessProvider::deviceInfo() const {
     return m_info;
 }
 
-bool FtdiSpiMemoryAccessor::mpsseWrite(uint8_t *data, unsigned length)
+bool FtdiSpiAccessProvider::mpsseWrite(uint8_t *data, unsigned length)
 {
     if(!m_initedMpsseMode) return false;
 
@@ -55,7 +55,7 @@ bool FtdiSpiMemoryAccessor::mpsseWrite(uint8_t *data, unsigned length)
     return !result;
 }
 
-bool FtdiSpiMemoryAccessor::mpsseWriteAndRead(
+bool FtdiSpiAccessProvider::mpsseWriteAndRead(
     uint8_t* data, uint8_t* result, unsigned length)
 {
     if(!m_initedMpsseMode) return false;
@@ -80,15 +80,15 @@ bool FtdiSpiMemoryAccessor::mpsseWriteAndRead(
     return true;
 }
 
-bool FtdiSpiMemoryAccessor::isInitedBitbangMode() const {
+bool FtdiSpiAccessProvider::isInitedBitbangMode() const {
     return m_initedBitbangMode;
 }
 
-bool FtdiSpiMemoryAccessor::isInitedMpsseMode() const {
+bool FtdiSpiAccessProvider::isInitedMpsseMode() const {
     return m_initedMpsseMode;
 }
 
-bool FtdiSpiMemoryAccessor::bitbangWrite(uint32_t data) {
+bool FtdiSpiAccessProvider::bitbangWrite(uint32_t data) {
     if(!m_initedBitbangMode) return false;
 
     unsigned char d[3];
@@ -108,7 +108,7 @@ bool FtdiSpiMemoryAccessor::bitbangWrite(uint32_t data) {
     return true;
 }
 
-bool FtdiSpiMemoryAccessor::bitbangWrite(unsigned char *data, 
+bool FtdiSpiAccessProvider::bitbangWrite(unsigned char *data, 
                                          unsigned length, 
                                          unsigned int *written)
 {
@@ -151,7 +151,7 @@ bool FtdiSpiMemoryAccessor::bitbangWrite(unsigned char *data,
     return true;
 }
 
-bool FtdiSpiMemoryAccessor::bitbangWriteAndRead(uint32_t data, uint8_t *result) {
+bool FtdiSpiAccessProvider::bitbangWriteAndRead(uint32_t data, uint8_t *result) {
     if(!m_initedBitbangMode) return false;
     
     unsigned char d[3];
@@ -173,7 +173,7 @@ bool FtdiSpiMemoryAccessor::bitbangWriteAndRead(uint32_t data, uint8_t *result) 
     return true;
 }
 
-bool FtdiSpiMemoryAccessor::bitbangWriteAndRead(unsigned char *data, 
+bool FtdiSpiAccessProvider::bitbangWriteAndRead(unsigned char *data, 
                                                 unsigned length, 
                                                 unsigned int *writen)
 {
@@ -238,7 +238,7 @@ bool FtdiSpiMemoryAccessor::bitbangWriteAndRead(unsigned char *data,
     return true;
 }
 
-bool FtdiSpiMemoryAccessor::initBitbangMode(const FtdiDeviceInfo::Ptr& info, 
+bool FtdiSpiAccessProvider::initBitbangMode(const FtdiDeviceInfo::Ptr& info, 
                                             const BitbangConfig &config)
 {
     FT_STATUS status;
@@ -290,7 +290,7 @@ bool FtdiSpiMemoryAccessor::initBitbangMode(const FtdiDeviceInfo::Ptr& info,
     return true;
 }
 
-bool FtdiSpiMemoryAccessor::initMpsseMode(int id, 
+bool FtdiSpiAccessProvider::initMpsseMode(int id, 
                                           const ChannelConfig_t &config) 
 {
     unsigned int result;
@@ -305,7 +305,7 @@ bool FtdiSpiMemoryAccessor::initMpsseMode(int id,
     return false;
 }
 
-bool FtdiSpiMemoryAccessor::mpsseWaitIsBusy() {
+bool FtdiSpiAccessProvider::mpsseWaitIsBusy() {
     if(!m_initedMpsseMode) return false;
 
     unsigned int state = 1, counter = 0;

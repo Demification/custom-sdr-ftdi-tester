@@ -1,25 +1,25 @@
-#include "PllConfig.hpp"
+#include "PllSystemDeviceParam.hpp"
 
 using ptree = boost::property_tree::ptree;
 
-void PllConfig::fill(uint8_t type, ptree &root) const
+void PllSystemDeviceParam::fill(uint8_t select, ptree &root) const
 {
-    if(type == Type::None) return;
+    if(select == SelectNone) return;
 
-    if(type & Type::InitFreq)
+    if(select & SelectInitFreq)
         if(init_freq != 0.0) 
             root.put<double>("init_freq", init_freq);
 
-    if(type & Type::VcxcoTrim)
+    if(select & SelectVcxcoTrim)
         if(vcxco_trim != UINT16_MAX) 
             root.put<uint16_t>("vcxco_trim", vcxco_trim);
 }
 
-void PllConfig::from(uint8_t type, const ptree &root)
+void PllSystemDeviceParam::from(uint8_t select, const ptree &root)
 {
-    if(type & Type::InitFreq)
+    if(select & SelectInitFreq)
         init_freq = root.get<double>("init_freq", 0.0);
 
-    if(type & Type::VcxcoTrim)
+    if(select & SelectVcxcoTrim)
         vcxco_trim = root.get<uint16_t>("vcxco_trim", UINT16_MAX);
 }

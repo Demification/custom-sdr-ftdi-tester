@@ -15,7 +15,7 @@
 #include "Lmk4828InitRegisters.hpp"
 
 Lmk4828FtdiAccessor::Lmk4828FtdiAccessor(FtdiDeviceInfoList::Ptr infoList)
-    : FtdiSpiMemoryAccessor(BitbangConfig{ .sck  = 0x04, 
+    : FtdiSpiAccessProvider(BitbangConfig{ .sck  = 0x04, 
                                            .mosi = 0x08, 
                                            .miso = 0x01, 
                                            .nss  = 0x02 }, 
@@ -25,8 +25,6 @@ Lmk4828FtdiAccessor::Lmk4828FtdiAccessor(FtdiDeviceInfoList::Ptr infoList)
         __DEBUG_INFO__("Lmk4828 ftdi accessor not inited.");
         return;
     }
-
-    init(Settings::instance().getPllConfig()->init_freq);
 }
 
 AccessorType Lmk4828FtdiAccessor::type() const {
@@ -67,8 +65,8 @@ bool Lmk4828FtdiAccessor::init(double refClkFreq) {
     std::map<RegisterAddr, RegisterValue> registers;
     parseInitRegs(Lmk4828InitRegisters, registers);
 
-    auto vcxcoTrim = Settings::instance().getPllConfig()->vcxco_trim;
-    setVcxcoTrimRegs(vcxcoTrim, registers);
+    auto config = Settings::instance().getPllSystemDeviceConfig();
+    setVcxcoTrimRegs(config->vcxco_trim, registers);
 
     if(externalRefFreqIsDefined) {
         computeInitRegsByFrequency(refClkFreq, registers);
@@ -94,11 +92,17 @@ bool Lmk4828FtdiAccessor::init(double refClkFreq) {
     bitbangWrite(0x010EF2); //ch3 ddly_pd
     bitbangWrite(0x0116F2); //ch5 ddly_pd
 
+    __DEBUG_INFO__(std::string("Inited lmk4828 device: ") + deviceInfo()->description + ".\n"
+        + " vcxco_trim: " + std::to_string(config->vcxco_trim)
+        + ", ref_clk_freq: " + std::to_string(config->init_freq));
+
     return true;
 }
 
-bool Lmk4828FtdiAccessor::sysref(void) {
-    return bitbangWrite(0x013E00);
+bool Lmk4828FtdiAccessor::sendSysref(void) {
+    auto result = bitbangWrite(0x013E00);
+    __DEBUG_INFO__("SysRef was send.");
+    return result;
 }
 
 bool Lmk4828FtdiAccessor::status(Lmk4828Status &value) {
