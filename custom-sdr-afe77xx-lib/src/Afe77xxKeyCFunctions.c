@@ -77,7 +77,7 @@ typedef unsigned int 		U32;
 typedef unsigned long long 	U64;
 typedef int 				S32;
 
-#ifdef TIENV
+#ifndef TIENV
 
 int AFE77xx_RegIfSet(void* handle){
 	int status = ftdi_set(handle);
@@ -96,17 +96,17 @@ void delay(int miliseconds){
         now = clock();
 }
 
-int AFE77xx_RegWrite(int fd,int address, U32 data){
+int AFE77xx_RegWrite(int fd, int address, U8 data){
 	int writesstatus = ftdi_writeReg(address,data);	
 	return writesstatus;
 }
 
-int AFE77xx_RegRead(int fd,int address, U32 *data){
+int AFE77xx_RegRead(int fd,int address, U8 *data){
 	delay(100);	
 	if(address<0x8000){
 		address = 0x8000+address;
 	}
-	U32 val = ftdi_readReg(address);	
+    int val = ftdi_readReg(address);
 	*data = val;	
 	return (int)val;
 }
@@ -123,6 +123,8 @@ int AFE77xx_RegReadWrite(int fd, U16 address, U8 data, U8 lsb, U8 msb){
 }
 
 int sysUsDelay(int waittime){
+
+
  	delay(waittime);
 	return 0;	
 }

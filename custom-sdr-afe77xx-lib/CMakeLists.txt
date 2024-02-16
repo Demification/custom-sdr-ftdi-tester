@@ -41,5 +41,5 @@ PRIVATE
     custom-sdr-ftdi-lib
 )
 
-add_definitions(-DLIBAFE77XX -DTIENV)
+add_definitions(-DLIBAFE77XX )
 

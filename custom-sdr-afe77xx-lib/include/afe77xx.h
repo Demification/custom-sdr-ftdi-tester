@@ -21,8 +21,8 @@ typedef int 				S32;
 
 API_EXPORT int AFE77xx_RegIfSet(void* handle);
 API_EXPORT int AFE77xx_RegIfGetFd();
-API_EXPORT int AFE77xx_RegWrite(int fd,int address, U32 data);
-API_EXPORT int AFE77xx_RegRead(int fd,int address, U32 *data);
+API_EXPORT int AFE77xx_RegWrite(int fd,int address, U8 data);
+API_EXPORT int AFE77xx_RegRead(int fd, int address, U8 *data);
 API_EXPORT int AFE77xx_RegReadWrite(int fd, U16 address, U8 data, U8 lsb, U8 msb);
 API_EXPORT U32 SerdesWrite(int fd, U32 serdesInstance, U32 address, U32 data);
 API_EXPORT U32 SerdesLaneWrite(int fd, U32 ulLaneno, U32 address, U32 data);
@@ -127,7 +127,7 @@ API_EXPORT U32 adcJesdRamp(int fd, U32 RxFb, U32 en, U32 step);
 API_EXPORT int setAdcJesdRampPattern(int fd,int chNo,int enable);
 API_EXPORT U32 rxLolEn(int fd, U32 en, U32 ch);
 API_EXPORT U32 rxQmcEn(int fd, U32 en, U32 ch);
-API_EXPORT int twos_comp(int val,int bits);
+API_EXPORT void getSerdesEye(int chipId, int laneNo);
 
 
 #ifdef __cplusplus

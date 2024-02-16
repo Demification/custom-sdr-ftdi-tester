@@ -2,10 +2,10 @@
 #include <memory>
 
 #include "Afe7769RficTypes.hpp"
-#include "RficSystemDeviceParam.hpp"
 
 #include "AbstractAccessor.hpp"
-#include "FtdiSpiAccessProvider.hpp"
+
+#include <linux/spi/spidev.h>
 
 struct Afe7769ChipInfo {
     using Ptr = std::shared_ptr<Afe7769ChipInfo>;
@@ -16,30 +16,37 @@ struct Afe7769ChipInfo {
     uint16_t vendor_id;
 };
 
-class Afe7769FtdiAccessor: public AbstractAccessor, 
-                           protected FtdiSpiAccessProvider
+class Afe7769FtdiAccessor: public AbstractAccessor
 {
 public:
-    Afe7769FtdiAccessor(FtdiDeviceInfoList::Ptr infoList);
+    Afe7769FtdiAccessor();
     AccessorType type() const override;
 
     bool init();
-    void* handle();
 
     bool write(uint16_t address, uint8_t value);
-    bool read(uint16_t address, uint8_t& value);
+    bool read(uint16_t address, uint8_t *value);
 
     bool burstRead(uint16_t address, uint8_t* values, uint32_t length);
     bool burstWrite(uint16_t address, uint8_t* values, uint32_t length);
 
-    bool waitUntilMacroReady(int sec = 5);
-    bool waitUntilMacroDone(int sec = 5);
+    bool waitUntilMacroReady(int msec = 5);
+    bool waitUntilMacroDone(int msec = 5);
     bool executeMacro(uint32_t* operands, uint16_t len, uint8_t opcode);
-    bool readMacroResultRegister(uint8_t numOfResReg, uint32_t &result);
+    bool executeMacro(uint32_t operand, uint8_t opcode);
+    bool readMacroResultRegister(uint32_t *result, uint16_t len);
+
+    bool rawWrite(uint8_t* data, unsigned length);
+    bool rawWriteAndRead(uint8_t* data, uint8_t* result, unsigned length);
 
 private: 
     void wait(int millisec = 1);
-    Afe7769ChipInfo::Ptr getChipInfo();
+    Afe7769ChipInfo getChipInfo();
+
+    int m_fd = -1;
+    uint8_t m_bits = 8;
+    uint32_t m_speed = 20000000;
+    uint32_t m_mode = SPI_MODE_0;
 
 public:
     bool setRficSampleRate(customsdr_rfic_channel ch, customsdr_rfic_sample_rate rate);
@@ -50,20 +57,17 @@ public:
 
     bool setRficFrequency(customsdr_rfic_channel ch, double frequency);
     bool getRficFrequency(customsdr_rfic_channel ch, double& frequency);
-    bool getRficFrequencyRange(customsdr_rfic_channel ch, Range& range);
 
     bool setRficLowIfMode(customsdr_rfic_channel ch, customsdr_rfic_low_if mode);
     bool getRficLowIfMode(customsdr_rfic_channel ch, customsdr_rfic_low_if& mode);
 
     bool setRficNcoFrequency(customsdr_rfic_channel ch, double frequency);
     bool getRficNcoFrequency(customsdr_rfic_channel ch, double& frequency);
-    bool getRficNcoFrequencyRange(customsdr_rfic_channel ch, Range& range);
 
     bool setRficBand(customsdr_rfic_channel ch, customsdr_rfic_band band);
 
     bool setRficGain(customsdr_rfic_channel ch, float gain);
     bool getRficGain(customsdr_rfic_channel ch, float& gain);
-    bool getRficGainRange(customsdr_rfic_channel ch, Range& range);
 
     bool setRficGainMode(customsdr_rfic_channel ch, customsdr_rfic_gain_mode mode);
     bool getRficGainMode(customsdr_rfic_channel ch, customsdr_rfic_gain_mode& mode);
