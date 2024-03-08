@@ -16,6 +16,7 @@ public:
     AccessorType type() const override;
 
     bool write(uint16_t address, const uint8_t value);
+    
     bool read(uint16_t address, uint8_t* value);
 
     bool burstRead(uint16_t address, uint8_t* values, uint32_t length);
