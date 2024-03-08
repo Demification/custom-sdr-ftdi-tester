@@ -1,0 +1,3 @@
+[submodule "libs/tiafe77-cafe"]
+	path = libs/tiafe77-cafe
+	url = https://gitlab.oz/fpga/rfchipapi/tiafe77_cafe

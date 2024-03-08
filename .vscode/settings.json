@@ -102,6 +102,7 @@
         "strstream": "cpp",
         "cfenv": "cpp",
         "*.ipp": "cpp",
-        "afe77xxinterface.h": "c"
+        "afe77xxinterface.h": "c",
+        "tiafe77_macrointerface.h": "c"
     }
 }
