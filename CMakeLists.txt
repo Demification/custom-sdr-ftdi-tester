@@ -5,7 +5,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(TIAFE77_LIB_PATH ${CMAKE_CURRENT_LIST_DIR}/libs/tiafe77-cafe/lib)
+set(FTDI_LIB_PATH ${CMAKE_CURRENT_LIST_DIR}/libs/custom-sdr-ftdi-lib)
 add_subdirectory(${TIAFE77_LIB_PATH})
+add_subdirectory(${FTDI_LIB_PATH})
 
 file(GLOB_RECURSE ALL_SRC_HPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
 file(GLOB_RECURSE ALL_SRC_CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
@@ -19,7 +21,12 @@ target_include_directories(custom-sdr-ftdi-tester
 PUBLIC
     .
     src
+    src/custom-sdr-parts
+    src/custom-sdr-parts/common
+    src/custom-sdr-parts/accessors
+    src/custom-sdr-parts/generic-ftdi
     ${TIAFE77_LIB_PATH}
+    ${FTDI_LIB_PATH}
 )
 
 target_link_libraries (custom-sdr-ftdi-tester
@@ -32,6 +39,7 @@ PUBLIC
 
     -pthread
 
+    custom-sdr-ftdi-lib
     tiafe77-cafe-lib
 
     -lboost_filesystem 
